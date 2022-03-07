@@ -1,3 +1,9 @@
+# Streamlit
+.streamlit
+
+# Firestore
+seppl-deepa2-firebase-key.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
