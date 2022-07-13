@@ -21,21 +21,25 @@ class InputOption:
         self.text = text
         self.sofa = sofa
 
-    def _on_click(self, user_input = None):
+    def update(self, user_input = None):
+        """update given user input"""
         self.user_input = user_input
         self.sofa.update()
 
-    def render(self, on_click: Callable):
+    def next_option(self):
+        """ask sofa to show next option"""
+        self.sofa.increment_visible_input_option()
+
+    def render(self):
         """render"""
         st.write(self.text)
 
-        answer1 = st.button("1", on_click = self._on_click, kwargs = dict(user_input="1"))
-        answer2 = st.button("2", on_click = self._on_click, kwargs = dict(user_input="2"))
+        answer1 = st.button("1", on_click = self.update, kwargs = dict(user_input="1"))
+        answer2 = st.button("2", on_click = self.update, kwargs = dict(user_input="2"))
         st.write("Or:")
         st.button(
             "Ask me something else, please.",
-            on_click = on_click,
-            kwargs = dict(user_input=ASK_STHG_ELSE)
+            on_click = self.next_option
         )
         if answer1:
             return "1"
@@ -80,15 +84,12 @@ class StateOfAnalysis:
         # fetch user input from currently visible InputOption widget
         user_input = self.get_visible_input_option().user_input
         if user_input:
-            if user_input==ASK_STHG_ELSE:
-                self.increment_visible_input_option()
+            if self.da2item.argdown_reconstruction:
+                self.da2item.argdown_reconstruction += user_input
             else:
-                if self.da2item.argdown_reconstruction:
-                    self.da2item.argdown_reconstruction += user_input
-                else:
-                    self.da2item.argdown_reconstruction = user_input
-                self.text += user_input
-                self.global_step += 1
+                self.da2item.argdown_reconstruction = user_input
+            self.text += user_input
+            self.global_step += 1
 
     def increment_visible_input_option(self):
         """increments visible input option"""
@@ -102,7 +103,7 @@ class StateOfAnalysis:
     def render_visible_option(self):
         """renders visible input option"""
         input_option = self.get_visible_input_option()
-        input_option.render(on_click = self.update)
+        input_option.render()
 
     def render(self):
         """render"""
