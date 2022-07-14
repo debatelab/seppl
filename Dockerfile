@@ -3,7 +3,8 @@ FROM nvidia/cuda:11.2.0-cudnn8-runtime-ubuntu20.04
 LABEL maintainer "Gregor Betz  <gregor.betz@gmail.com>"
 
 # Copy local code to the container image.
-ENV APP_HOME .
+ENV APP_HOME . \
+  POETRY_VERSION=1.1.12
 
 WORKDIR $APP_HOME
 COPY . ./
@@ -16,8 +17,13 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 
 # --------------- Install python packages using `pip` ---------------
 
-RUN python3 -m pip install --no-cache-dir -r requirements.txt \
-	&& rm -rf requirements.txt
+# System deps:
+RUN pip install "poetry==$POETRY_VERSION"
+RUN poetry config virtualenvs.create false \
+  && poetry install --no-dev --no-interaction --no-ansi
+
+#RUN python3 -m pip install --no-cache-dir -r requirements.txt \
+#	&& rm -rf requirements.txt
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit
@@ -34,9 +40,9 @@ RUN bash -c 'echo -e "\
 EXPOSE 8501
 EXPOSE 8080
 
-# --------------- Export envirennement variable ---------------
+# --------------- Export environment variable ---------------
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-CMD ["streamlit", "run", "--server.port", "8501", "seppl/streamlit_app2.py"]
+CMD ["poetry", "run", "streamlit", "run", "--server.port", "8501", "seppl/streamlit_app2.py"]
 #CMD ["streamlit", "run", "--server.port", "8080", "main.py"]
