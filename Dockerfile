@@ -14,12 +14,10 @@ RUN apt update
 RUN apt install -y python3 python3-pip
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 
-RUN python3 -m pip install --user pipx
-RUN python3 -m pipx ensurepath
 # --------------- Install python packages using `pip` ---------------
 
 # System deps:
-RUN python3 -m pipx install poetry==1.1.12
+RUN pip install poetry==1.1.12
 #RUN poetry config virtualenvs.create false \
 #  && poetry install --no-dev --no-interaction --no-ansi
 RUN poetry install --no-interaction --no-ansi
