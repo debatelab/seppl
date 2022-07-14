@@ -3,8 +3,7 @@ FROM nvidia/cuda:11.2.0-cudnn8-runtime-ubuntu20.04
 LABEL maintainer "Gregor Betz  <gregor.betz@gmail.com>"
 
 # Copy local code to the container image.
-ENV APP_HOME . \
-  POETRY_VERSION=1.1.12
+ENV APP_HOME . 
 
 WORKDIR $APP_HOME
 COPY . ./
@@ -18,7 +17,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 # --------------- Install python packages using `pip` ---------------
 
 # System deps:
-RUN pip install "poetry==$POETRY_VERSION"
+RUN pip install poetry==1.1.12
 RUN poetry config virtualenvs.create false \
   && poetry install --no-dev --no-interaction --no-ansi
 
