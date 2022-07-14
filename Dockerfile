@@ -19,7 +19,7 @@ RUN python3 -m pipx ensurepath
 # --------------- Install python packages using `pip` ---------------
 
 # System deps:
-RUN pipx install poetry==1.1.12
+RUN python3 -m pipx install poetry==1.1.12
 #RUN poetry config virtualenvs.create false \
 #  && poetry install --no-dev --no-interaction --no-ansi
 RUN poetry install --no-interaction --no-ansi
