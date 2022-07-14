@@ -10,6 +10,10 @@ python = "^3.8"
 streamlit = "^1.7.0"
 google-cloud-firestore = "^2.3.4"
 deepa2 = "^0.1.5"
+streamlit-server-state = "^0.12.2"
+transformers = "^4.20.1"
+sentencepiece = "^0.1.96"
+accelerate = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"

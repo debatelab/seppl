@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, List
 from dataclasses import dataclass
 
 from deepa2 import DeepA2Item
+from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
 from seppl.backend.userinput import ArgdownInput, CueInput, QuoteInput, UserInput
-from seppl.backend.inputoption import InputOption
+from seppl.backend.inputoption import ChoiceOption, InputOption, TextOption
 
 
 @dataclass
@@ -41,6 +42,10 @@ class AbstractHandler(Handler):
     """
 
     _next_handler: Handler = None
+    _inference: AbstractInferencePipeline = None
+    
+    def __init__(self, inference: AbstractInferencePipeline = None):
+        self._inference = inference
 
     def set_next(self, handler: Handler) -> Handler:
         self._next_handler = handler
@@ -55,46 +60,4 @@ class AbstractHandler(Handler):
             return self._next_handler.handle(request)
 
         return None
-
-
-
-class ArgdownHandler(AbstractHandler):
-    """handles argdown input"""
-
-    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
-        if isinstance(request.query, ArgdownInput):
-            old_sofa = request.state_of_analysis
-            input_options = []
-            new_sofa = pjt.StateOfAnalysis(
-                text = old_sofa.text+" *and more*",
-                input_options = input_options,
-            )
-            # TODO
-            return new_sofa
-
-        return super().handle(request)
-
-
-class CueHandler(AbstractHandler):
-    """handles cue (gist, paraphrase, etc.) input"""
-
-    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
-        if isinstance(request.query, CueInput):
-            new_sofa = pjt.StateOfAnalysis()
-            # TODO
-            return new_sofa
-
-        return super().handle(request)
-
-
-class QuoteHandler(AbstractHandler):
-    """handles quote (reasons, conjectures) input"""
-
-    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
-        if isinstance(request.query, QuoteInput):
-            new_sofa = pjt.StateOfAnalysis()
-            # TODO
-            return new_sofa
-
-        return super().handle(request)
 
