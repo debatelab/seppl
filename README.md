@@ -3,9 +3,6 @@ AI-Powered E-Learning App for Argument Analysis
 
 
 ```sh
-# update requirements (optional)
-poetry export -f requirements.txt --output requirements.txt --without-hashes
-
 # build image (optional)
 docker build -t seppl:latest .
 
