@@ -117,9 +117,21 @@ class ProjectStRenderer:
 
     def render(self):
         """renders the project as streamlit gui"""
-        st.write("RENDERING THE PROJECT")
-        st.write(f"step: {self._project.step}")
-        st.write(f"text: {self._project.state_of_analysis.text}")
+        st.write(f"RENDERING THE PROJECT ({self._project.project_id})")
+        st.write(f"step: {self._project.state_of_analysis.global_step}")
+        if self._project.state_of_analysis.metrics:
+            metric_data = {
+                k[:7]: [v] for k,v, in
+                self._project.state_of_analysis.metrics.__dict__.items()
+            }
+            st.table(data=metric_data)
+        if self._project.state_of_analysis.global_step>0:
+            st.write(f"feedback: {self._project.state_of_analysis.feedback}")
+        st.write("argdown:")
+        st.code(
+            self._project.state_of_analysis.da2item.argdown_reconstruction,
+            language=None
+        )
 
         # setup options
         input_options = self._project.state_of_analysis.input_options
@@ -132,5 +144,3 @@ class ProjectStRenderer:
         option_gui.render()
         if len(input_options)>1:
             st.button("Toggle Option", on_click = self._project.toggle_visible_option)
-
-

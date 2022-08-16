@@ -351,7 +351,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "deepa2"
-version = "0.1.5"
+version = "0.1.7"
 description = "Cast NLP data as multiangular DeepA2 datasets and integrate these in training pipeline"
 category = "main"
 optional = false
@@ -2254,10 +2254,7 @@ decorator = [
     {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
-deepa2 = [
-    {file = "deepa2-0.1.5-py3-none-any.whl", hash = "sha256:b4a00308ca11155fc2a2003a3e7868f081c5527b9c8a9029f3e180371ceb5de1"},
-    {file = "deepa2-0.1.5.tar.gz", hash = "sha256:2834941efc4f8db12ddafa5ac87123b0bcfd76db031ba7db12b6aeb9d0e26caf"},
-]
+deepa2 = []
 defusedxml = [
     {file = "defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"},
     {file = "defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69"},

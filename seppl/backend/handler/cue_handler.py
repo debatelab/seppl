@@ -5,12 +5,12 @@ from typing import Optional, Any, List
 
 from deepa2 import DeepA2Item
 import seppl.backend.project as pjt
-from seppl.backend.handler import Request, AbstractHandler
+from seppl.backend.handler import Request, AbstractUserInputHandler
 from seppl.backend.userinput import CueInput
 
 
 
-class CueHandler(AbstractHandler):
+class CueHandler(AbstractUserInputHandler):
     """handles cue (gist, paraphrase, etc.) input"""
 
     def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:

@@ -32,3 +32,6 @@ class CueInput(UserInput):
 class QuoteInput(UserInput):
     """quote input by user (reason, conjecture)"""
 
+class FormalizationInput(UserInput):
+    """quote input by user (reason, conjecture)"""
+
