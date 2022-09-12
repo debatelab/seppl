@@ -119,6 +119,7 @@ class ProjectStRenderer:
         """renders the project as streamlit gui"""
         st.write(f"RENDERING THE PROJECT ({self._project.project_id})")
         st.write(f"step: {self._project.state_of_analysis.global_step}")
+        st.write(f"resumes from: {self._project.state_of_analysis.resumes_from_step}")
         if self._project.state_of_analysis.metrics:
             metric_data = {
                 k[:7]: [v] for k,v, in

@@ -12,13 +12,13 @@ from seppl.backend.inputoption import InputOption
 #import seppl.backend.handler as hdl
 from seppl.backend.handler import (
     Request,
-    DA2Metric,
     AbstractUserInputHandler,
     ArgdownHandler,
     CueHandler,
     QuoteHandler,
     FormalizationHandler,
 )
+from seppl.backend.da2metric import DA2Metric
 
 
 class StateOfAnalysis:
@@ -45,22 +45,24 @@ class StateOfAnalysis:
     resumes_from_step: int
     visible_option: int
     da2item: DeepA2Item
-    metrics: DA2Metric
+    metrics: DA2Metric # TODO: implement SofaEvaluation!
     feedback: Optional[str]
 
     """state of the current analysis"""
     def __init__(self,
         project_id = "project-id",
         global_step: int = 0,
+        resumes_from_step: int = 0,
         input_options: Optional[List[InputOption]] = None,
     ):
         self.project_id = project_id
         self.global_step = global_step
+        self.resumes_from_step = resumes_from_step
         self.visible_option = 0
-        self.metrics = None
         self.feedback = "That was excellent!"
         self._input_options = input_options
         self.da2item = DeepA2Item()
+        self.metrics = DA2Metric()
 
     @property
     def input_options(self) -> List[InputOption]:
@@ -91,10 +93,13 @@ class StateOfAnalysis:
         da2item: DeepA2Item = None,
         **kwargs,
     ) -> StateOfAnalysis:
-        """creates a revised copy as next sofa"""
+        """
+        creates a revised copy as next sofa
+        """
         revision: StateOfAnalysis = deepcopy(self)
         revision.visible_option = 0
         revision.global_step = global_step
+        revision.resumes_from_step = self.global_step
         revision.user_input = user_input
         revision.input_options = input_options
         revision.feedback = feedback

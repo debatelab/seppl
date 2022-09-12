@@ -6,14 +6,15 @@ authors = ["Gregor Betz <gregor.betz@kit.edu>"]
 license = "APACHE 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8,<3.11"
 streamlit = "^1.7.0"
 google-cloud-firestore = "^2.3.4"
-deepa2 = "^0.1.5"
+deepa2 = { file = "/Users/ggbetz/git/deepa2/dist/deepa2-0.1.13a0-py3-none-any.whl" }
 streamlit-server-state = "^0.12.2"
 transformers = "^4.20.1"
 sentencepiece = "^0.1.96"
 accelerate = "^0.10.0"
+nltk = "^3.7"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"

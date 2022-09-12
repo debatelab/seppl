@@ -5,12 +5,11 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any, List, Dict
 from dataclasses import dataclass
 
-from deepa2 import DeepA2Item, DeepA2Parser
-import deepa2.metrics.metric_handler as metrics
 from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
 from seppl.backend.userinput import ArgdownInput, CueInput, QuoteInput, UserInput
 from seppl.backend.inputoption import ChoiceOption, InputOption, TextOption
+from seppl.backend.da2metric import DA2Metric
 
 
 @dataclass
@@ -19,22 +18,6 @@ class Request:
     query: UserInput
     state_of_analysis: pjt.StateOfAnalysis
     global_step: int
-
-@dataclass
-class DA2Metric:
-    """
-    dataclass representing metrics object that evaluates da2item
-    """
-    # argdown
-    valid_argdown: int = None
-    pc_structure: int = None
-    consistent_usage: int = None
-    no_petitio: int = None
-    no_redundancy: int = None
-    # formalizations
-    valid_formalizations: float = None
-    global_deductive_validity: int = None
-    local_deductive_validity: float = None  # inference step-wise
 
 
 class Handler(ABC):
@@ -72,23 +55,6 @@ class AbstractUserInputHandler(Handler):
         # convenient way like this:
         # monkey.set_next(squirrel).set_next(dog)
         return handler
-
-    def evaluate_da2item(self, da2item: DeepA2Item = None) -> DA2Metric:
-        """
-        calculates metrics for comprehensive argumentative analysis
-        represented by da2item
-        """
-        metric = DA2Metric()
-        # argdown
-        parsed_argdown = DeepA2Parser.parse_argdown(da2item.argdown_reconstruction)
-        metric.valid_argdown = metrics.ArgdownHandler.valid_argdown(parsed_argdown)
-        metric.pc_structure = metrics.ArgdownHandler.pc_structure(parsed_argdown)
-        metric.consistent_usage = metrics.ArgdownHandler.consistent_usage(parsed_argdown)
-        metric.no_petitio = metrics.ArgdownHandler.no_petitio(parsed_argdown)
-        metric.no_redundancy = metrics.ArgdownHandler.no_redundancy(parsed_argdown)
-        # TODO
-        # calculate more metrics
-        return metric
 
     @abstractmethod
     def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
