@@ -102,6 +102,8 @@ class ProjectStRenderer:
 
     def option_gui_factory(self, option: InputOption) -> _InputOptionStRenderer:
         """creates gui for option"""
+        print(option)
+        option_gui = None
         if isinstance(option, ChoiceOption):
             option_gui = _ChoiceOptionStRenderer(
                 submit=self.submit,
@@ -121,11 +123,14 @@ class ProjectStRenderer:
         st.write(f"step: {self._project.state_of_analysis.global_step}")
         st.write(f"resumes from: {self._project.state_of_analysis.resumes_from_step}")
         if self._project.state_of_analysis.metrics:
-            metric_data = {
-                k[:7]: [v] for k,v, in
-                self._project.state_of_analysis.metrics.__dict__.items()
-            }
+            metric_data = [
+                {"name": key, "score": value}
+                for key, value 
+                in self._project.state_of_analysis.metrics.all_scores().items()
+            ]
             st.table(data=metric_data)
+        st.write(f"phase: {self._project.state_of_analysis.metrics.reconstruction_phase}")
+        
         if self._project.state_of_analysis.global_step>0:
             st.write(f"feedback: {self._project.state_of_analysis.feedback}")
         st.write("argdown:")

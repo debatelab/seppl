@@ -18,7 +18,7 @@ from seppl.backend.handler import (
     QuoteHandler,
     FormalizationHandler,
 )
-from seppl.backend.da2metric import DA2Metric
+from seppl.backend.da2metric import SofaEvaluation
 
 
 class StateOfAnalysis:
@@ -45,12 +45,13 @@ class StateOfAnalysis:
     resumes_from_step: int
     visible_option: int
     da2item: DeepA2Item
-    metrics: DA2Metric # TODO: implement SofaEvaluation!
+    metrics: SofaEvaluation
     feedback: Optional[str]
 
     """state of the current analysis"""
     def __init__(self,
         project_id = "project-id",
+        inference: AbstractInferencePipeline = None,
         global_step: int = 0,
         resumes_from_step: int = 0,
         input_options: Optional[List[InputOption]] = None,
@@ -62,7 +63,7 @@ class StateOfAnalysis:
         self.feedback = "That was excellent!"
         self._input_options = input_options
         self.da2item = DeepA2Item()
-        self.metrics = DA2Metric()
+        self.metrics = SofaEvaluation(inference = inference)
 
     @property
     def input_options(self) -> List[InputOption]:
@@ -89,7 +90,7 @@ class StateOfAnalysis:
         user_input: UserInput = None,
         input_options: List[InputOption] = None,
         feedback: str = None,
-        metrics: DA2Metric = None,
+        metrics: SofaEvaluation = None,
         da2item: DeepA2Item = None,
         **kwargs,
     ) -> StateOfAnalysis:
@@ -119,6 +120,7 @@ class Project:
         self.project_id = "PROJECT-ID"
         self.state_of_analysis: StateOfAnalysis = StateOfAnalysis(
             project_id = self.project_id,
+            inference = inference,
             **kwargs
         )
         self.global_step = 0

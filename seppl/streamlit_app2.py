@@ -17,9 +17,10 @@ logging.basicConfig(
 )
 
 # TODO: load this from config.yaml
-_PIPELINE = "BigModelPipeline"
-_MODEL_PATH = "debatelab/argument-analyst"
-_MODEL_REVISION = "main"
+_PIPELINE = "DA2MosecPipeline"
+_TEXTEGEN_SERVER_URL = "http://kriton.philosophie.kit.edu:8002/inference"
+_LOSS_SERVER_URL = "http://kriton.philosophie.kit.edu:8001/inference"
+
 
 
 def main():
@@ -28,9 +29,8 @@ def main():
     # initialize inference pipeline
     inference = inference_factory(
         pipeline_id = _PIPELINE,
-        model_path = _MODEL_PATH,
-        revision = _MODEL_REVISION,
-        auth_token=st.secrets["api_token"]
+        textgen_server_url = _TEXTEGEN_SERVER_URL,
+        loss_server_url = _LOSS_SERVER_URL,
     )
 
     # initialize reconstruction project

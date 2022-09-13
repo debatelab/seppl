@@ -14,7 +14,6 @@ from nltk.inference.prover9 import Prover9
 import nltk.sem.logic
 
 from seppl.backend.inference import AbstractInferencePipeline
-from seppl.backend.userinput import UserInput
 
 
 # TODO: write tests for this metrics class!
@@ -77,10 +76,9 @@ class Metric(ABC):
         if da2item:
             self.score = self.calculate()
 
-    @property
     @abstractmethod
     def critical_angles(self) -> List[str]:
-        """list of angles watched by metric"""        
+        """list of angles watched by metric"""
 
     @property
     def satisficed(self) -> bool:
@@ -109,7 +107,7 @@ class Metric(ABC):
                 recalculate = True
             elif any(
                 getattr(da2item, angle) != getattr(self.da2item, angle)
-                for angle in self.critical_angles
+                for angle in self.critical_angles()
             ):
                 recalculate = True
 
@@ -124,10 +122,10 @@ class Metric(ABC):
         # add premises, conclusions, and intermediary conclusions to temp da2item
         if "parsed_argdown" in self._cache:
             if self._cache["parsed_argdown"]:
-                parsed_argdown = Argument(self._cache["parsed_argdown"])
-                premises = [s for s in parsed_argdown.statements if not s.is_conclusion()]
+                parsed_argdown: Argument = self._cache["parsed_argdown"]
+                premises = [s for s in parsed_argdown.statements if not s.is_conclusion]
                 conclusion = [parsed_argdown.statements[-1]]
-                interm_conclusions = [s for s in parsed_argdown.statements[:-1] if s.is_conclusion()]
+                interm_conclusions = [s for s in parsed_argdown.statements[:-1] if s.is_conclusion]
 
                 da2item_tmp.premises=[
                     ArgdownStatement(text=p.text,ref_reco=p.label)
@@ -172,7 +170,6 @@ class ArgdownMetric(Metric):
 
         return cached_items
 
-    @property
     def critical_angles(self) -> List[str]:
         return ["argdown_reconstruction"]
 
@@ -230,7 +227,6 @@ class ConclMatchesRecoScore(ArgdownMetric):
             )
         return score
 
-    @property
     def critical_angles(self) -> List[str]:
         return super().critical_angles() + ["conclusion"]
 
@@ -246,6 +242,8 @@ class RecoCohSourceScore(ArgdownMetric):
     """
 
     def calculate(self):
+        if not self._inference:
+            return None
         if not self.da2item.source_text or not self._cache["parsed_argdown"]:
             return 0
         # check condition 1
@@ -288,15 +286,17 @@ class RecoCohSourceScore(ArgdownMetric):
             not "default_reconstruction" in self._cache or
             self.da2item.source_text != da2item.source_text
         ):
-            self._cache["default_reconstruction"] = self._inference.generate(
-                dataclasses.asdict(da2item),
-                mode="s => a"
-            )
+            if self._inference:
+                self._cache["default_reconstruction"] = self._inference.generate(
+                    dataclasses.asdict(da2item),
+                    mode="s => a"
+                )
+            else:
+                self._cache["default_reconstruction"] = "default reconstruction"
             cached_items = cached_items + ["default_reconstruction"]
 
         return cached_items
 
-    @property
     def critical_angles(self) -> List[str]:
         c_angles = [
             "conclusion",
@@ -318,9 +318,8 @@ class SomeReasonsScore(Metric):
         score = int(bool(self.da2item.reasons))
         return score
 
-    @property
     def critical_angles(self) -> List[str]:
-        return super().critical_angles() + ["reasons"]
+        return ["reasons"]
 
 
 class SomeConjecturesScore(Metric):
@@ -330,9 +329,8 @@ class SomeConjecturesScore(Metric):
         score = int(bool(self.da2item.conjectures))
         return score
 
-    @property
     def critical_angles(self) -> List[str]:
-        return super().critical_angles() + ["conjectures"]
+        return ["conjectures"]
 
 
 class ReasonsAlignedScore(ArgdownMetric):
@@ -344,7 +342,7 @@ class ReasonsAlignedScore(ArgdownMetric):
             return 0
         if not self.da2item.reasons:
             return 1
-        parsed_argdown = Argument(self._cache["parsed_argdown"])
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for reason in self.da2item.reasons:
             if reason.ref_reco > 0 and reason.ref_reco <= len(parsed_argdown.statements):
@@ -353,13 +351,12 @@ class ReasonsAlignedScore(ArgdownMetric):
                     if (s.label == reason.ref_reco)
                 )
                 if referenced_statement:
-                    if not referenced_statement.is_conclusion():
+                    if not referenced_statement.is_conclusion:
                         count_aligned += 1
 
         score = count_aligned / len(self.da2item.reasons)
         return score        
 
-    @property
     def critical_angles(self) -> List[str]:
         return super().critical_angles() + ["reasons"]
 
@@ -379,7 +376,7 @@ class ConjecturesAlignedScore(ArgdownMetric):
             return 0
         if not self.da2item.conjectures:
             return 1
-        parsed_argdown = Argument(self._cache["parsed_argdown"])
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for conjecture in self.da2item.conjectures:
             if conjecture.ref_reco > 0 and conjecture.ref_reco <= len(parsed_argdown.statements):
@@ -388,13 +385,12 @@ class ConjecturesAlignedScore(ArgdownMetric):
                     if s.label == conjecture.ref_reco
                 )
                 if referenced_statement:
-                    if referenced_statement.is_conclusion():
+                    if referenced_statement.is_conclusion:
                         count_aligned += 1
 
         score = count_aligned / len(self.da2item.conjectures)
         return score
 
-    @property
     def critical_angles(self) -> List[str]:
         return super().critical_angles() + ["conjectures"]
 
@@ -412,7 +408,9 @@ class ReasConjCohRecoScore(Metric):
       for some subset `CUE'` of all `CUE`s.
     """
 
-    def calculate(self):
+    def calculate(self):        
+        if not self._inference:
+            return None
         if (
             (not self.da2item.reasons and not self.da2item.conjectures) or
             not self.da2item.argdown_reconstruction
@@ -432,7 +430,6 @@ class ReasConjCohRecoScore(Metric):
         )
         return int(coheres)
 
-    @property
     def critical_angles(self) -> List[str]:
         c_angles = [
             "argdown_reconstruction",
@@ -442,7 +439,7 @@ class ReasConjCohRecoScore(Metric):
             "context",
             "source_paraphrase",
         ]
-        c_angles = c_angles + super().critical_angles()
+        c_angles = c_angles
         return c_angles
 
 
@@ -481,13 +478,12 @@ class FormalizationMetric(Metric):
                     reparse = True
             if reparse:
                 self._cache[citem_key] = DeepA2Parser.parse_as_folf(
-                    getattr(self.da2item,angle)
+                    getattr(da2item,angle)
                 )
                 cached_items = cached_items + [citem_key]
 
         return cached_items
 
-    @property
     def critical_angles(self) -> List[str]:
         return [
             "premises_formalized",
@@ -506,10 +502,10 @@ class CompleteFormalization(ArgdownMetric):
     def calculate(self):
         if not self._cache["parsed_argdown"]:
             return 0
-        parsed_argdown = Argument(self._cache["parsed_argdown"])
-        premises = [s for s in parsed_argdown.statements if not s.is_conclusion()]
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
+        premises = [s for s in parsed_argdown.statements if not s.is_conclusion]
         conclusion = [parsed_argdown.statements[-1]]
-        interm_conclusions = [s for s in parsed_argdown.statements[:-1] if s.is_conclusion()]
+        interm_conclusions = [s for s in parsed_argdown.statements[:-1] if s.is_conclusion]
         # first, check whether some formalizations are entirely missing
         if (
             not self.da2item.premises_formalized or
@@ -568,7 +564,6 @@ class CompleteFormalization(ArgdownMetric):
         score = count_aligned / len(parsed_argdown.statements)
         return score
 
-    @property
     def critical_angles(self) -> List[str]:
         return super().critical_angles() + [
             "premises_formalized",
@@ -589,7 +584,7 @@ class WellFormedKeysScore(Metric):
 
     def calculate(self):
         if not self.da2item.plchd_substitutions:
-            return 0
+            return 1
         # gather all formalizations
         formalizations = []
         if self.da2item.premises_formalized:
@@ -607,9 +602,8 @@ class WellFormedKeysScore(Metric):
                 return 0
         return 1
 
-    @property
     def critical_angles(self) -> List[str]:
-        return super().critical_angles() + [
+        return [
             "premises_formalized",
             "conclusion_formalized",
             "intermediary_conclusions_formalized",
@@ -629,6 +623,8 @@ class FormCohRecoScore(ArgdownMetric):
     """
 
     def calculate(self):
+        if not self._inference:
+            return None
         if (
             not self.da2item.plchd_substitutions or
             not self._cache["parsed_argdown"]
@@ -646,7 +642,6 @@ class FormCohRecoScore(ArgdownMetric):
         return coheres
 
 
-    @property
     def critical_angles(self) -> List[str]:
         c_angles = [
             "premises_formalized",
@@ -718,14 +713,14 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
     def calculate(self):
         if not self._cache["parsed_argdown"]:
             return 0
-        parsed_argdown = Argument(self._cache["parsed_argdown"])
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_locally_valid = 0
         for statement in parsed_argdown.statements:
-            if statement.is_conclusion() and statement.uses():
+            if statement.is_conclusion and statement.uses:
                 conclusion_formula = self._get_parsed_formula(statement.label)
                 if conclusion_formula:
                     premise_formulae = []
-                    for label in statement.uses():
+                    for label in statement.uses:
                         premise_formula = self._get_parsed_formula(label)
                         premise_formulae.append(premise_formula)
                     if premise_formulae and None not in premise_formulae:
@@ -734,7 +729,7 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
 
         count_inference_steps = len([
             s for s in parsed_argdown.statements 
-            if s.is_conclusion()
+            if s.is_conclusion
         ])
         score = count_locally_valid / count_inference_steps
 
@@ -745,7 +740,6 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
         """are all inference steps deductively valid?"""
         return bool(round(self.score,5) >= 1)
 
-    @property
     def critical_angles(self) -> List[str]:
         c_angles = (
             ArgdownMetric.critical_angles(self) +
@@ -822,7 +816,7 @@ class SofaEvaluation:
 
         # update metric scores
         for metric in self._metrics_registry.values():
-            metric.update(da2item)
+            metric.update_score(da2item)
 
     def individual_score(self, metric_name = Metric) -> Union[float,int]:
         """get individual score of metric by name"""
@@ -830,8 +824,18 @@ class SofaEvaluation:
         if metric:
             return metric.score
         else:
-            # metric nit registered
+            # metric not registered
             return None
+
+    def all_scores(self) -> Dict[str,Union[float,int]]:
+        """get scores of all registered metrics as dict"""
+        scores = {
+            key: metric.score
+            for key, metric 
+            in self._metrics_registry.items()
+        }
+        return scores
+
 
     @property
     def reconstruction_phase(self) -> int:

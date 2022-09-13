@@ -23,9 +23,8 @@ class ArgdownHandler(AbstractUserInputHandler):
             new_da2item = deepcopy(old_sofa.da2item)
             new_da2item.argdown_reconstruction = argdown_input.cast()
             # evaluate revised analysis
-            metrics = old_sofa.metrics.create_update(
-                new_da2item = new_da2item
-            )
+            metrics = old_sofa.metrics
+            metrics.update(new_da2item)
 
             # TODO: replace dummy option
             input_options: List[InputOption] = [
