@@ -10,14 +10,10 @@ from seppl.backend.inference import AbstractInferencePipeline
 from seppl.backend.userinput import UserInput
 from seppl.backend.inputoption import InputOption
 #import seppl.backend.handler as hdl
+import seppl.backend.handler
 from seppl.backend.handler import (
     Request,
-    AbstractUserInputHandler,
-    ArgdownHandler,
-    CueHandler,
-    QuoteHandler,
-    FormalizationHandler,
-)
+    AbstractUserInputHandler)
 from seppl.backend.da2metric import SofaEvaluation
 
 
@@ -127,10 +123,12 @@ class Project:
 
         # setup chain of responsibility for handling user queries
         self.handlers: List[AbstractUserInputHandler] = [
-            ArgdownHandler(inference=self.inference),
-            CueHandler(inference=self.inference),
-            QuoteHandler(inference=self.inference),
-            FormalizationHandler(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerNoCues(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerNoArgd(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerIllfArgd(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerRedund(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerMismatchCA(inference=self.inference),
+            seppl.backend.handler.PhaseZeroHandlerCatchAll(inference=self.inference),
         ]
         for i in range(1,len(self.handlers)):
             self.handlers[i-1].set_next(

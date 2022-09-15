@@ -4,10 +4,31 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
 import json
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple, Any, Union
 
 from deepa2 import GenerativeMode
 import requests
+
+class InferenceRater:
+    """object for rating inference results (generation)"""
+
+    def __init__(
+        self,
+        inputs: Dict[str,str] = None,
+        mode: GenerativeMode = None,
+        generated_text: str = None,
+        **kwargs
+    ):
+        self.inputs = inputs
+        self.mode = mode
+        self.generated_text = generated_text
+        self.parameters = kwargs        
+
+    def rate_and_submit(self, rating: Any):
+        """receive and submit user inference rating"""
+        # TODO: implement
+        raise NotImplementedError
+
 
 class AbstractInferencePipeline(ABC):
     """Interface vor Inference Pipelines"""
@@ -30,17 +51,40 @@ class AbstractInferencePipeline(ABC):
         # iterate over chain
         for mode in chain:
             outputs = self._generate(inputs=data, mode=mode, **kwargs)
-            data.update({mode.target:outputs})
+            if "generated_text" in outputs[0]:
+                generated_text = outputs[0]["generated_text"]
+                data.update({mode.target:generated_text})
+            else:
+                logging.warning("generation failed in chain %s at step %s", chain, mode)
+                return [{"error": f"generation failed in step {mode}"}]
         return data
 
-    def generate(self, inputs: Dict[str,str] = None, mode: str = None, **kwargs) -> str:
+    def generate(
+        self,
+        inputs: Dict[str,str] = None,
+        mode: Union[str, GenerativeMode] = None,
+        **kwargs
+    ) -> Tuple[List[Dict[str,str]], InferenceRater]:
         """
         generates output
         uses internal _generate()
+        returns:
+        - [{"generated_text": ...}, {"generated_text": ...}, ...]
+        - InferenceRater object to elicit quality rating by user
         """
-        mode = GenerativeMode.from_keys(mode)
+        if not isinstance(mode, GenerativeMode):
+            mode = GenerativeMode.from_keys(mode)
         # TODO check that input is complete
-        return self._generate(inputs=inputs, mode=mode, **kwargs)
+        inference_rater = None
+        outputs = self._generate(inputs=inputs, mode=mode, **kwargs)
+        if "generated_text" in outputs[0]:
+            inference_rater = InferenceRater(
+                inputs=inputs,
+                mode=mode,
+                generated_text=outputs[0]["generated_text"],
+                **kwargs
+            )
+        return outputs, inference_rater
 
     def construct_prompt(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None) -> str:
         """construct_prompt"""
@@ -50,7 +94,7 @@ class AbstractInferencePipeline(ABC):
         return prompt
 
     @abstractmethod
-    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> str:
+    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> List[Dict[str,str]]:
         """generates output"""
 
     @abstractmethod
@@ -81,7 +125,7 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
         self.timeout = timeout
 
 
-    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> str:
+    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> List[Dict[str,str]]:
         """generates output"""
         # construct input text
         input_text = self.construct_prompt(inputs=inputs, mode=mode)

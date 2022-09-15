@@ -287,7 +287,7 @@ class RecoCohSourceScore(ArgdownMetric):
             self.da2item.source_text != da2item.source_text
         ):
             if self._inference:
-                self._cache["default_reconstruction"] = self._inference.generate(
+                self._cache["default_reconstruction"],_ = self._inference.generate(
                     dataclasses.asdict(da2item),
                     mode="s => a"
                 )
@@ -836,6 +836,9 @@ class SofaEvaluation:
         }
         return scores
 
+    def from_cache(self, key: str) -> Any:
+        """utility: get item from cache"""
+        return self._cache.get(key)
 
     @property
     def reconstruction_phase(self) -> int:

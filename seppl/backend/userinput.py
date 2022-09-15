@@ -5,11 +5,18 @@ from abc import ABC, abstractmethod
 from typing import Any
 from deepa2 import DeepA2Item
 
+
+
 class UserInput(ABC):
     """abstract base class"""
 
-    def __init__(self, raw_input: str):
+    def __init__(
+        self,
+        raw_input: str,
+        da2_field: str,
+    ):
         self._raw_input: str = raw_input
+        self.da2_field: str = da2_field
 
     @abstractmethod
     def cast(self) -> Any:
@@ -31,10 +38,34 @@ class ArgdownInput(UserInput):
 class CueInput(UserInput):
     """cue input by user (gist, context, etc.)"""
 
-
 class QuoteInput(UserInput):
     """quote input by user (reason, conjecture)"""
 
 class FormalizationInput(UserInput):
-    """quote input by user (reason, conjecture)"""
+    """formalization input by user (premises formalized,
+    conclusion formalized, intermediary conclusions formalized)"""
 
+class KeysInput(UserInput):
+    """keys input by user (placeholder substitutions)"""
+
+
+
+INPUT_TYPES = {
+    """maps DeepA2Item fields to user_input classes"""
+
+    "title": CueInput,
+    "gist": CueInput,
+    "source_paraphrase": CueInput,
+    "context": CueInput,
+
+    "argdown_reconstruction": ArgdownInput,
+
+    "reasons": QuoteInput,
+    "conjectures": QuoteInput,
+
+    "premises_formalized": FormalizationInput,
+    "intermediary_conclusions_formalized": FormalizationInput,
+    "conclusion_formalized": FormalizationInput,
+
+    "plchd_substitutions": KeysInput,
+}

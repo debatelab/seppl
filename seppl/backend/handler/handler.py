@@ -58,13 +58,6 @@ class AbstractUserInputHandler(Handler):
         return handler
 
     @abstractmethod
-    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
-        if self._next_handler:
-            return self._next_handler.handle(request)
-
-        return None
-
-    @abstractmethod
     def is_responsible(self, request: Request) -> bool:
         """checks if this hnadler is responsible for the given request"""
 
@@ -88,7 +81,7 @@ class AbstractUserInputHandler(Handler):
     ) -> str:
         """creates input options for next user-input"""
 
-    def handle2(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
+    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
         """defines the global strategy for processing user input"""
         if self.is_responsible(request):
             old_sofa = request.state_of_analysis
