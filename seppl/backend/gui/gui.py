@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Callable, Optional
 import streamlit as st
 
 from seppl.backend.project import Project
-from seppl.backend.userinput import UserInput
-from seppl.backend.inputoption import ChoiceOption, InputOption, INPUT_TYPES, TextOption
+from seppl.backend.userinput import UserInput, INPUT_TYPES
+from seppl.backend.inputoption import (
+    ChoiceOption,
+    InputOption,
+    TextOption,
+    QuoteOption,
+)
 
 
 class _InputOptionStRenderer(ABC):
@@ -34,7 +40,10 @@ class _InputOptionStRenderer(ABC):
 
     def query(self, raw_input: str) -> UserInput:
         """constructs and returns user_input to-be passed to submit function"""
-        user_input = INPUT_TYPES[self._input_option.input_type](raw_input)
+        user_input = INPUT_TYPES[self._input_option.da2_field](
+            raw_input,
+            self._input_option.da2_field,
+        )
         return user_input
 
     @abstractmethod
@@ -49,11 +58,13 @@ class _ChoiceOptionStRenderer(_InputOptionStRenderer):
 
     def render(self):
         """renders the choice option as streamlit gui"""
-        st.write(f"## ChoiceOption {self._input_option.input_type}")
+        st.write(f"## ChoiceOption for: {self._input_option.da2_field}")
         st.write("### Context\n")
         for context_item in self._input_option.context:
             st.write(context_item)
         st.write(f"Q: {self._input_option.question}")
+        if self._input_option.inference_rater:
+            st.write("Display InferenceRater")
         for answer_label, answer in self._input_option.answers.items():
                 st.button(
                     answer_label,
@@ -69,21 +80,57 @@ class _TextOptionStRenderer(_InputOptionStRenderer):
 
     def render(self):
         """renders the text option as streamlit gui"""
-        st.write(f"## TextOption {self._input_option.input_type}")
-        st.write("### Context\n")
-        for context_item in self._input_option.context:
-            st.write(context_item)
+        st.write(f"## TextOption for: {self._input_option.da2_field}")
+        if self._input_option.context:
+            st.write("### Context\n")
+            for context_item in self._input_option.context:
+                st.write(context_item)
         st.write(f"Q: {self._input_option.question}")
 
         text_input = st.text_area(
-            label="Enter of modify text below",
+            label="Enter or modify text below",
             height=200,
             value=self._input_option.initial_text)
+
+        if self._input_option.inference_rater:
+            st.write("Display InferenceRater")
 
         st.button(
             "Submit",
             on_click = self._submit,
             kwargs = dict(query=self.query(text_input))
+        )
+    
+
+class _QuoteOptionStRenderer(_InputOptionStRenderer):
+    """renders a QuoteOption"""
+
+    _input_option: QuoteOption = None
+
+    def render(self):
+        """renders the quote option as streamlit gui"""
+        st.write(f"## QuoteOption for: {self._input_option.da2_field}")
+        if self._input_option.context:
+            st.write("### Context\n")
+            for context_item in self._input_option.context:
+                st.write(context_item)
+
+        annotation = st.text_area(
+            label=self._input_option.question,
+            height=200,
+            value=self._input_option.initial_annotation
+        )
+
+        # TODO: check: if self._input_option.is_annotation(annotation):
+
+
+        if self._input_option.inference_rater:
+            st.write("Display InferenceRater")
+
+        st.button(
+            "Submit",
+            on_click = self._submit,
+            kwargs = dict(query=self.query(annotation))
         )
     
 
@@ -102,7 +149,7 @@ class ProjectStRenderer:
 
     def option_gui_factory(self, option: InputOption) -> _InputOptionStRenderer:
         """creates gui for option"""
-        print(option)
+        logging.debug(option)
         option_gui = None
         if isinstance(option, ChoiceOption):
             option_gui = _ChoiceOptionStRenderer(
@@ -111,6 +158,11 @@ class ProjectStRenderer:
             )
         elif isinstance(option, TextOption):
             option_gui = _TextOptionStRenderer(
+                submit=self.submit,
+                input_option=option
+            )
+        elif isinstance(option, QuoteOption):
+            option_gui = _QuoteOptionStRenderer(
                 submit=self.submit,
                 input_option=option
             )

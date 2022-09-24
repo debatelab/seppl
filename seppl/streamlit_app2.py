@@ -40,7 +40,7 @@ def main():
         option = ChoiceOption(
             context = ["(1) P --- (2) C", "(1) Q --- (2) C"],
             question = "Which reco is better A or B?",
-            input_type = "ARGDOWN_INPUT",
+            da2_field = "argdown_reconstruction",
             answers = {
                 "reco 1": "(1) P ---(2) C",
                 "reco 2": "(1) Q ---(2) C",

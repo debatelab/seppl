@@ -3,6 +3,7 @@
 from __future__ import annotations
 from copy import deepcopy
 import dataclasses
+import logging
 from typing import Optional, List, Any, Dict
 
 from deepa2 import DeepA2Item
@@ -132,8 +133,9 @@ class Project:
         ]
         for i in range(1,len(self.handlers)):
             self.handlers[i-1].set_next(
-                self.handlers[i-1]
+                self.handlers[i]
             )
+
 
     def toggle_visible_option(self):
         """increments index of visible option in state of analysis"""

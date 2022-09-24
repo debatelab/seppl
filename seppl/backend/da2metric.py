@@ -223,7 +223,7 @@ class ConclMatchesRecoScore(ArgdownMetric):
         if self._cache["parsed_argdown"]:
             score = int(
                 self._cache["parsed_argdown"].statements[-1].text.strip().lower() == 
-                self.da2item.conclusion.strip().lower()
+                self.da2item.conclusion[0].text.strip().lower()
             )
         return score
 
@@ -256,7 +256,7 @@ class RecoCohSourceScore(ArgdownMetric):
         default_loss = self._inference.loss(inputs=default_inputs, mode="s => a")
         inputs = dataclasses.asdict(self.da2item)
         current_loss = self._inference.loss(inputs=inputs, mode="s => a")
-        if  current_loss < default_loss:
+        if  current_loss <= default_loss:
             return 1
         # check condition 2
         if not self.da2item.conclusion:
@@ -265,7 +265,7 @@ class RecoCohSourceScore(ArgdownMetric):
         input_angles = [["s", "c"]+ss for ss in list(Util.powerset(cues))]
         modes = [f"{' + '.join(l)} => a" for l in input_angles]
         coheres = any(
-            (self._inference.loss(inputs=inputs, mode=mode) <
+            (self._inference.loss(inputs=inputs, mode=mode) <=
             self._inference.loss(inputs=inputs, mode="s => a"))
             for mode in modes
         )
@@ -404,7 +404,7 @@ class ReasConjCohRecoScore(Metric):
     """
     scores 1 if some `reasons` `R` and `conjectures` `J` 
     cohere with the `argdown_reconstruction` `A` and given `CUE`s, i.e. if
-    - loss(`A`,`S+R+J+CUE'`) < loss(`A`,`S+CUE'`) 
+    - loss(`A`,`S+R+J+CUE'`) <= loss(`A`,`S+CUE'`) 
       for some subset `CUE'` of all `CUE`s.
     """
 
@@ -424,7 +424,7 @@ class ReasConjCohRecoScore(Metric):
         input_angles_rj = [ss+["r","j"] for ss in input_angles_base]
         modes = lambda input_angles: [f"{' + '.join(l)} => a" for l in input_angles]
         coheres = any(
-            loss(mode_rj) < loss(mode_base)
+            loss(mode_rj) <= loss(mode_base)
             for mode_rj, mode_base
             in zip(modes(input_angles_rj),modes(input_angles_base))
         )
@@ -616,10 +616,10 @@ class FormCohRecoScore(ArgdownMetric):
     Formalizations `fp`, `fc`, `fi` plus keys `k` do *cohere*
     with an `argdown_reconstruction` that contains statements 
     `p`, `c`, and `i` (extracted from parsed `a`) iff
-    1. loss(`fc`, `c+fp+k`) < loss(`fc`, `fp`) AND
-    2. loss(`fp`, `p+fc+fi+k`) < loss(`fp`, `fc+fi`) AND
-    3. loss(`c`, `fc+fp+k`) < loss(`c`, `fp+k`) AND
-    4. loss(`p`, `fp+fc+fi+k`) < loss(`p`, `fc+fi+k`).
+    1. loss(`fc`, `c+fp+k`) <= loss(`fc`, `fp`) AND
+    2. loss(`fp`, `p+fc+fi+k`) <= loss(`fp`, `fc+fi`) AND
+    3. loss(`c`, `fc+fp+k`) <= loss(`c`, `fp+k`) AND
+    4. loss(`p`, `fp+fc+fi+k`) <= loss(`p`, `fc+fi+k`).
     """
 
     def calculate(self):

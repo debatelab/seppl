@@ -3,7 +3,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Optional, Any, List, Dict
+import logging
+from typing import Optional, Any, List
 from dataclasses import dataclass
 
 from deepa2 import DeepA2Item
@@ -11,7 +12,15 @@ from deepa2 import DeepA2Item
 from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
 from seppl.backend.userinput import UserInput
+from seppl.backend.da2metric import SofaEvaluation
+from seppl.backend.inputoption import InputOption
 
+CUE_FIELDS = [
+    "conclusion",
+    "gist",
+    "context",
+    "source_paraphrase",
+]
 
 @dataclass
 class Request:
@@ -19,6 +28,8 @@ class Request:
     query: UserInput
     state_of_analysis: pjt.StateOfAnalysis
     global_step: int
+    new_da2item: DeepA2Item = None  # will be created by first handler
+    metrics: SofaEvaluation = None  # will be created by first handler
 
 
 class Handler(ABC):
@@ -46,7 +57,7 @@ class AbstractUserInputHandler(Handler):
 
     _next_handler: Handler = None
     _inference: AbstractInferencePipeline = None
-    
+
     def __init__(self, inference: AbstractInferencePipeline = None):
         self._inference = inference
 
@@ -64,66 +75,70 @@ class AbstractUserInputHandler(Handler):
     @abstractmethod
     def get_feedback(
         self,
-        old_sofa: pjt.StateOfAnalysis = None,
-        new_da2item: DeepA2Item = None,
-        metrics: pjt.SofaEvaluation = None,
-        user_input: UserInput = None,
+        request: Request,
     ) -> str:
         """creates user feedback to be displayed"""
 
     @abstractmethod
     def get_input_options(
         self,
-        old_sofa: pjt.StateOfAnalysis = None,
-        new_da2item: DeepA2Item = None,
-        metrics: pjt.SofaEvaluation = None,
-        user_input: UserInput = None,
-    ) -> str:
+        request: Request,
+    ) -> List[InputOption]:
         """creates input options for next user-input"""
 
     def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
         """defines the global strategy for processing user input"""
-        if self.is_responsible(request):
-            old_sofa = request.state_of_analysis
+        logging.info("currently handling request: %s", type(self))
 
-            # revise comprehensive argumentative analysis (da2item)
-            user_input: UserInput = request.query
+        old_sofa = request.state_of_analysis
+        user_input: UserInput = request.query
+
+        # revise comprehensive argumentative analysis (da2item)
+        if not request.new_da2item:
             new_da2item = deepcopy(old_sofa.da2item)
             user_input.update_da2item(new_da2item)
+            request.new_da2item = new_da2item
+            logging.info("  updated da2item: %s", new_da2item)
 
-            # evaluate revised analysis and update metrics
+        # evaluate revised analysis and update metrics
+        if not request.metrics:
             metrics = deepcopy(old_sofa.metrics)
             metrics.update(new_da2item)
+            request.metrics = metrics
+            logging.info("  updated metrics: %s", metrics.all_scores())
+
+        if self.is_responsible(request):
+            logging.info("  responsible for request: %s", request)
+            logging.info("  metrics in request: %s", request.metrics.all_scores())
 
             # create feedback
-            feedback = self.get_feedback(
-                old_sofa = old_sofa,
-                new_da2item = new_da2item,
-                metrics = metrics,
-                user_input = user_input,
-            )
+            feedback = self.get_feedback(request)
+#            feedback = self.get_feedback(
+#                old_sofa = old_sofa,
+#                new_da2item = new_da2item,
+#                metrics = metrics,
+#                user_input = user_input,
+#            )
 
             # create input options
-            input_options = self.get_input_options(
-                old_sofa = old_sofa,
-                new_da2item = new_da2item,
-                metrics = metrics,
-                user_input = user_input,
-            )
+            input_options = self.get_input_options(request)
 
             # create new state of analysis (sofa)
             new_sofa = old_sofa.create_revision(
                 global_step = request.global_step,
-                input_options = input_options,
+                da2item = request.new_da2item,
+                metrics = request.metrics,
                 user_input = user_input,
+                input_options = input_options,
                 feedback = feedback,
-                da2item = new_da2item,
-                metrics = metrics,
             )
 
             return new_sofa
 
         elif self._next_handler:
+            logging.info("  passing on to next handler: %s", type(self._next_handler))
             return self._next_handler.handle(request)
+
+        logging.info("stopping chain")
 
         return None
