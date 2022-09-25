@@ -60,6 +60,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
                 mode=f"s+a => {angle}",
             )
             if "generated_text" in outputs[0]:
+                logging.info("PhaseOneHandler: generated quotes (%s) = %s", field, outputs[0]["generated_text"])
                 quotes = DeepA2Parser.parse_quotes(
                     outputs[0]["generated_text"]
                 )
@@ -68,6 +69,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
 
             options.append(
                 QuoteOption(
+                    source_text=request.new_da2item.source_text,
                     initial_quotes=quotes,
                     inference_rater=inference_rater,
                     da2_field=field,
@@ -102,6 +104,7 @@ class PhaseOneHandlerRNotAlgn(PhaseOneHandler):
         da2item = request.new_da2item
         options.append(
             QuoteOption(
+                source_text=da2item.source_text,
                 initial_quotes=da2item.reasons,
                 da2_field="reasons",
                 question="Please add or revise reasons given you argument reconstruction.",
@@ -140,6 +143,7 @@ class PhaseOneHandlerJNotAlgn(PhaseOneHandler):
         da2item = request.new_da2item
         options.append(
             QuoteOption(
+                source_text=da2item.source_text,
                 initial_quotes=da2item.conjectures,
                 da2_field="conjectures",
                 question="Please add or revise conjectures given you argument reconstruction.",

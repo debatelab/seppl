@@ -21,7 +21,14 @@ _PIPELINE = "DA2MosecPipeline"
 _TEXTEGEN_SERVER_URL = "http://kriton.philosophie.kit.edu:8002/inference"
 _LOSS_SERVER_URL = "http://kriton.philosophie.kit.edu:8001/inference"
 
-
+# TODO: load from database
+_SOURCE_TEXT = """It is cruel and unethical to kill animals for food
+when vegetarian options are available, especially because raising animals
+in confinement for slaughter is cruel, and many animals in the United
+States are not slaughtered humanely. Animals are sentient beings that
+have emotions and social connections. Scientific studies show that cattle,
+pigs, chickens, and all warm-blooded animals can experience stress, pain,
+and fear."""
 
 def main():
     """main script"""
@@ -49,6 +56,7 @@ def main():
         st.session_state["project"] = Project(
             inference = inference,
             input_options = [option],
+            source_text = _SOURCE_TEXT,
         )
 
     # visualize state of project

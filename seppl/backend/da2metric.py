@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import dataclasses
 from itertools import chain, combinations
+import logging
 from typing import Iterable, List, Dict, Any, Optional, Type, Union
 
 from deepa2 import DeepA2Item, DeepA2Parser, DeepA2Layouter, ArgdownStatement
@@ -18,12 +19,13 @@ from seppl.backend.inference import AbstractInferencePipeline
 
 # TODO: write tests for this metrics class!
 
-"""
-The main idea is to define different *phases* and to make the logic
-dependent on the phase of the project. The *phase* of the project
-in turn is a function of (a) available components (da2item) and
-(b) their evaluation (metrics) in the current state of analysis.
-"""
+# """
+# The main idea is to define different *phases* and to make the logic
+# dependent on the phase of the project. The *phase* of the project
+# in turn is a function of (a) available components (da2item) and
+# (b) their evaluation (metrics) in the current state of analysis.
+# """
+
 RECONSTRUCTION_PHASES = [
     "0_BASE_STAGE",
     "1_EXEGETIC_STAGE",
@@ -59,7 +61,7 @@ class Metric(ABC):
     #inference pipeline
     _inference: AbstractInferencePipeline = None
     # cache, especially for default_reconstruction
-    _cache: Dict[str, Any] = None
+    _cache: Dict[str,Any] = None
     # da2item to be evaluated
     da2item: DeepA2Item = None
     # current score of metric
@@ -90,7 +92,7 @@ class Metric(ABC):
         """calculates metric"""
 
     def update_cache(self,
-        da2item: DeepA2Item = None,
+        da2item: DeepA2Item = None,  # pylint: disable=unused-argument
         cached_items_updated: List[str] = None
     ) -> List[str]:
         """
@@ -248,9 +250,10 @@ class RecoCohSourceScore(ArgdownMetric):
             return 0
         # check condition 1
         ## copy da2item and replace argdown with default reconstruction 
-        default_inputs = deepcopy(dataclasses.asdict(self.da2item)).update(
+        default_inputs = deepcopy(dataclasses.asdict(self.da2item))
+        default_inputs.update(
             {
-                "source_text": self._cache["default_reconstruction"]
+                "argdown_reconstruction": self._cache["default_reconstruction"]
             }
         )
         default_loss = self._inference.loss(inputs=default_inputs, mode="s => a")
@@ -262,7 +265,7 @@ class RecoCohSourceScore(ArgdownMetric):
         if not self.da2item.conclusion:
             return 0
         cues = Util.available_cues(da2item=self.da2item)
-        input_angles = [["s", "c"]+ss for ss in list(Util.powerset(cues))]
+        input_angles = [["s", "c"]+list(ss) for ss in list(Util.powerset(cues))]
         modes = [f"{' + '.join(l)} => a" for l in input_angles]
         coheres = any(
             (self._inference.loss(inputs=inputs, mode=mode) <=
@@ -286,13 +289,18 @@ class RecoCohSourceScore(ArgdownMetric):
             not "default_reconstruction" in self._cache or
             self.da2item.source_text != da2item.source_text
         ):
+            self._cache["default_reconstruction"] = "default reconstruction"
             if self._inference:
-                self._cache["default_reconstruction"],_ = self._inference.generate(
+                output, _ = self._inference.generate(
                     dataclasses.asdict(da2item),
                     mode="s => a"
                 )
-            else:
-                self._cache["default_reconstruction"] = "default reconstruction"
+                if output:
+                    self._cache["default_reconstruction"] = output[0].get(
+                        "generated_text",
+                        "default reconstruction"
+                    )
+                
             cached_items = cached_items + ["default_reconstruction"]
 
         return cached_items
@@ -408,7 +416,7 @@ class ReasConjCohRecoScore(Metric):
       for some subset `CUE'` of all `CUE`s.
     """
 
-    def calculate(self):        
+    def calculate(self):    
         if not self._inference:
             return None
         if (
@@ -420,7 +428,7 @@ class ReasConjCohRecoScore(Metric):
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
         cues = Util.available_cues(da2item=self.da2item)
-        input_angles_base = [["s"]+ss for ss in list(Util.powerset(cues))]
+        input_angles_base = [["s"]+list(ss) for ss in list(Util.powerset(cues))]
         input_angles_rj = [ss+["r","j"] for ss in input_angles_base]
         modes = lambda input_angles: [f"{' + '.join(l)} => a" for l in input_angles]
         coheres = any(
@@ -439,7 +447,6 @@ class ReasConjCohRecoScore(Metric):
             "context",
             "source_paraphrase",
         ]
-        c_angles = c_angles
         return c_angles
 
 
@@ -769,6 +776,8 @@ class SofaEvaluation:
     _metrics_registry: Dict[str, Metric] = None
     # mapping of metrics to reconstruction phases
     _metric_phase: Dict[str, int] = None
+    # mapping of metrics to alternatives that may be satisficed for reconstruction phases
+    _alternative_metrics: Dict[str, List[str]] = None
 
     def __init__(self,
         inference: AbstractInferencePipeline = None,
@@ -777,6 +786,7 @@ class SofaEvaluation:
         self._cache = {}
         self._metrics_registry = {}
         self._metric_phase = {}
+        self._alternative_metrics = {}
 
         self.register_metric(ValidArgdownScore,phase=0)
         self.register_metric(PCStructureScore,phase=0)
@@ -785,8 +795,16 @@ class SofaEvaluation:
         self.register_metric(ConclMatchesRecoScore,phase=0)
         self.register_metric(RecoCohSourceScore,phase=0)
 
-        self.register_metric(SomeReasonsScore,phase=1)
-        self.register_metric(SomeConjecturesScore,phase=1)
+        self.register_metric(
+            SomeReasonsScore,
+            phase=1,
+            alternatives=[SomeConjecturesScore]
+        )
+        self.register_metric(
+            SomeConjecturesScore,
+            phase=1,
+            alternatives=[SomeReasonsScore]
+        )
         self.register_metric(ReasonsAlignedScore,phase=1)
         self.register_metric(ConjecturesAlignedScore,phase=1)
         self.register_metric(ReasConjCohRecoScore,phase=1)
@@ -799,13 +817,29 @@ class SofaEvaluation:
         self.register_metric(GlobalDeductiveValidityScore,phase=2)
         self.register_metric(LocalDeductiveValidityScore,phase=2)
 
-    def register_metric(self, metric_class: Type[Metric] = None, phase: int = -1) -> None:
+        # check whether all alternatives are actually registered
+        for alternatives in self._alternative_metrics.values():
+            for alt in alternatives:
+                if alt not in self._metrics_registry:
+                    logging.error("alternative metrics %s not registered", alt)
+
+
+    def register_metric(
+        self,
+        metric_class: Type[Metric] = None,
+        phase: int = -1,
+        alternatives: List[Type[Metric]] = None
+    ) -> None:
         """register a metric"""
         # instantiate metric
         metric = metric_class(inference=self._inference, cache=self._cache)
         # register metric
         self._metrics_registry[metric.__class__.__name__] = metric
         self._metric_phase[metric.__class__.__name__] = phase
+        if alternatives:
+            self._alternative_metrics[metric.__class__.__name__] = []
+            for alternative in alternatives:
+                self._alternative_metrics[metric.__class__.__name__].append(alternative.__name__)
 
     def update(self, da2item: DeepA2Item = None) -> None:
         """update cache and metric scores"""
@@ -844,112 +878,18 @@ class SofaEvaluation:
     def reconstruction_phase(self) -> int:
         """return current reconstruction phase"""
         for phase in range(len(RECONSTRUCTION_PHASES)):
-            if any(
-                not metric.satisficed
-                for key, metric in self._metrics_registry.items()
-                if self._metric_phase[key] == phase
-            ):
-                return phase
+            for key, metric in self._metrics_registry.items():
+                if self._metric_phase[key] == phase:
+                    # is metric satisficed?
+                    if not metric.satisficed:
+                        # no alternatives?
+                        if not key in self._alternative_metrics: 
+                            return phase
+                        # is no alternative satisficed?
+                        if not any(
+                            self._metrics_registry[alt].satisficed
+                            for alt in self._alternative_metrics[key]
+                            if alt in self._metrics_registry
+                        ):
+                            return phase
         return len(RECONSTRUCTION_PHASES)
-
-
-
-#class DA2Metric:
-#    """
-#    class representing comprehensive metrics for a da2item
-#    - evaluates a da2item
-#    - specifies the PHASE of the reconstruction project
-#    - updates itself given new revision of item
-#    """
-#    #inference pipeline
-#    _inference: AbstractInferencePipeline = None
-#    # cache
-#    cached_default_reconstruction: str = None
-#    # argdown
-#    valid_argdown: int = None
-#    pc_structure: int = None
-#    consistent_usage: int = None
-#    no_petitio: int = None
-#    no_redundancy: int = None
-#    conclusion_matches_reco: int = None
-#    argdown_coheres_with_source: int = None
-#    _coherence_tolerance: float = 0.5
-#    # formalizations
-#    valid_formalizations: float = None
-#    global_deductive_validity: int = None
-#    local_deductive_validity: float = None  # inference step-wise
-#
-#    def __init__(self,
-#        da2item: DeepA2Item = None,
-#        inference: AbstractInferencePipeline = None,
-#        default_reconstruction:str = None
-#    ):
-#        self._inference = inference
-#        self.cached_default_reconstruction = default_reconstruction
-#        if da2item is not None:
-#            self.evaluate(da2item)  
-#
-#
-#
-#    def evaluate(self, da2item: DeepA2Item = None):
-#        """evaluates da2item and updates itself"""
-#        # create default reco
-#        if not self.cached_default_reconstruction:
-#            self._inference.generate(dataclasses.asdict(da2item), mode="s => a")
-#        # argdown
-#        parsed_argdown = DeepA2Parser.parse_argdown(da2item.argdown_reconstruction)
-#        self.valid_argdown = metrics.ArgdownHandler.valid_argdown(parsed_argdown)
-#        self.pc_structure = metrics.ArgdownHandler.pc_structure(parsed_argdown)
-#        self.consistent_usage = metrics.ArgdownHandler.consistent_usage(parsed_argdown)
-#        self.no_petitio = metrics.ArgdownHandler.no_petitio(parsed_argdown)
-#        self.no_redundancy = metrics.ArgdownHandler.no_redundancy(parsed_argdown)
-#        # if the `conclusion` is non-empty, it is identical with the final conclusion of the `argdown_reconstruction`:
-#        if da2item.conclusion is not None and self.valid_argdown:
-#            self.conclusion_matches_reco = int(
-#                parsed_argdown.statements[-1].text.strip().lower() == da2item.conclusion.strip().lower()
-#            )
-#        else:
-#            self.conclusion_matches_reco = None
-#        # `argdown_reconstruction` minimally coheres with a `source_text`
-#        #self.argdown_coheres_with_source = self._argdown_coheres_with_source(da2item)
-#
-#        # TODO
-#        # calculate more metrics for PHASE 2 and PHASE 3
-# 
-#        # # formalizations
-#        # self.valid_formalizations = metrics.FormalizationHandler.valid_formalizations(da2item)
-#        # self.global_deductive_validity = metrics.FormalizationHandler.global_deductive_validity(da2item)
-#        # self.local_deductive_validity = metrics.FormalizationHandler.local_deductive_validity(da2item)
-#
-#
-#    def phase(self) -> str:
-#        """returns the phase of the reconstruction project as assessed by the metrics"""
-#        if not (
-#            self.valid_argdown and
-#            self.pc_structure and
-#            self.consistent_usage and
-#            self.no_petitio and
-#            self.no_redundancy and
-#            (self.conclusion_matches_reco is None or self.conclusion_matches_reco) and
-#            self.argdown_coheres_with_source
-#        ):
-#            return RECONSTRUCTION_PHASES[0]
-#
-#
-#
-#        # TODO
-#        # implement logic
-#        return RECONSTRUCTION_PHASES[0]
-#
-#    def create_update(self, new_da2item: DeepA2Item = None, query: UserInput = None) -> DA2Metric:
-#        """
-#        returns updated metric given revised new_da2item based on query
-#        assumes that soutrce text remains the same and hence keeps cached defaul reconstruction
-#        """
-#        new_metric = DA2Metric(
-#            da2item=new_da2item,
-#            default_reconstruction=self.cached_default_reconstruction
-#        )
-#        return new_metric
-#
-#

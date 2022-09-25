@@ -48,6 +48,7 @@ class StateOfAnalysis:
     """state of the current analysis"""
     def __init__(self,
         project_id = "project-id",
+        source_text: str = None,
         inference: AbstractInferencePipeline = None,
         global_step: int = 0,
         resumes_from_step: int = 0,
@@ -59,7 +60,7 @@ class StateOfAnalysis:
         self.visible_option = 0
         self.feedback = "That was excellent!"
         self._input_options = input_options
-        self.da2item = DeepA2Item()
+        self.da2item = DeepA2Item(source_text = source_text)
         self.metrics = SofaEvaluation(inference = inference)
 
     @property
@@ -124,12 +125,18 @@ class Project:
 
         # setup chain of responsibility for handling user queries
         self.handlers: List[AbstractUserInputHandler] = [
+            # PHASE ZERO
             seppl.backend.handler.PhaseZeroHandlerNoCues(inference=self.inference),
             seppl.backend.handler.PhaseZeroHandlerNoArgd(inference=self.inference),
             seppl.backend.handler.PhaseZeroHandlerIllfArgd(inference=self.inference),
             seppl.backend.handler.PhaseZeroHandlerRedund(inference=self.inference),
             seppl.backend.handler.PhaseZeroHandlerMismatchCA(inference=self.inference),
             seppl.backend.handler.PhaseZeroHandlerCatchAll(inference=self.inference),
+            # PHASE ONE
+            seppl.backend.handler.PhaseOneHandlerNoRJ(inference=self.inference),
+            seppl.backend.handler.PhaseOneHandlerRNotAlgn(inference=self.inference),
+            seppl.backend.handler.PhaseOneHandlerJNotAlgn(inference=self.inference),
+            seppl.backend.handler.PhaseOneHandlerCatchAll(inference=self.inference),
         ]
         for i in range(1,len(self.handlers)):
             self.handlers[i-1].set_next(

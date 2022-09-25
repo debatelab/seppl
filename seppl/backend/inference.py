@@ -169,7 +169,7 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
         }
         data = json.dumps(payload)
         # send http request
-        logging.debug("Sending http request: %s", data)
+        logging.info("Sending http request: %s", data)
         response = requests.request(
             "POST",
             self.loss_server_url,
@@ -179,7 +179,7 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
         )
         # decode and unpack response
         content = response.content.decode("utf-8")
-        logging.debug("Received response: %s", content)
+        logging.info("Received response: %s", content)
         try:
             # as json
             result_json = json.loads(content)

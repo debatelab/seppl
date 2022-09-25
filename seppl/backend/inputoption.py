@@ -56,6 +56,8 @@ class QuoteOption(InputOption):
     _REGEX_QUOTE = r"\[([^\[]+)\]\(([^ ]*)( \"(.+)\")?\)"
 
     def __post_init__(self):
+        if self.source_text is None:
+            raise ValueError(f"QuoteOption ({self}): source_text is None but must be given")
         if self.initial_annotation:
             if not self.is_annotation(self.initial_annotation):
                 self.initial_annotation = None
@@ -65,6 +67,9 @@ class QuoteOption(InputOption):
             self.initial_annotation = QuoteOption.quotes_as_annotation(
                 self.source_text, self.initial_quotes
             )
+        # if no initial annotation, display pure source text
+        if not self.initial_annotation:
+            self.initial_annotation = self.source_text
 
     def is_annotation(
         self,
@@ -89,11 +94,12 @@ class QuoteOption(InputOption):
         annotation = ""
         # gradually build annotation
         for quote in quotes:
-            if quote.text in source_text[pointer:]:
-                start_idx = source_text.index(quote.text, pointer)
-                annotation += source_text[pointer:start_idx]
-                annotation += f"[{quote.text}]({quote.ref_reco})"
-                pointer = start_idx+len(quote.text)
+            if quote:
+                if quote.text in source_text[pointer:]:
+                    start_idx = source_text.index(quote.text, pointer)
+                    annotation += source_text[pointer:start_idx]
+                    annotation += f"[{quote.text}]({quote.ref_reco})"
+                    pointer = start_idx+len(quote.text)
             else:
                 logging.warning("QuoteOption: ignoring faulty quote %s", quote.text)
         annotation += source_text[pointer:]
@@ -166,12 +172,15 @@ class OptionFactory():
         creates a list of QuoteOptions, possibly
         pre-initialized with da2item values
         """
+        if not da2_item:
+            logging.warning("OptionFactory: no da2_item given, cannot prodiuce quote options.")
+            return None
         input_options = []
         for da2_field in da2_fields:
             if pre_initialized and da2_item:
-                quotes = da2_item.get(da2_field, "")
+                quotes = getattr(da2_item, da2_field, None)
             else:
-                quotes = []
+                quotes = None
             if quotes:
                 question_text = f"Please revise the {da2_field}."
             else:
