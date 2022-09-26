@@ -172,6 +172,7 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
         )
         if "generated_text" in outputs[0]:
             alternative_reco = outputs[0]["generated_text"]
+            alternative_reco = self._inference.postprocess_argdown(alternative_reco)
         else:
             logging.warning("Generation failed for mode s+c=>a")
         # Assemble options:
@@ -228,6 +229,7 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
         )
         if "generated_text" in outputs[0]:
             alternative_reco = outputs[0]["generated_text"]
+            alternative_reco = self._inference.postprocess_argdown(alternative_reco)
         else:
             logging.warning("Generation failed for mode s+c=>a")
         # Assemble options:

@@ -4,9 +4,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
 import json
+import re
 from typing import Optional, Dict, List, Tuple, Any, Union
 
 from deepa2 import GenerativeMode
+from deepa2.parsers import ArgdownParser
 import requests
 
 class InferenceRater:
@@ -92,6 +94,56 @@ class AbstractInferencePipeline(ABC):
         for input_key in mode.input:
             prompt += f" {input_key}: {inputs[input_key]}"
         return prompt
+
+    @staticmethod
+    def postprocess_argdown(argdown_reconstrcution:str) -> str:
+        """
+        postprocesses argdown reconstruction:
+        * inserts line breaks
+        """
+
+        def newlines_between_propositions(propositions: str) -> str:
+            """inserts line breaks between propositions"""
+            formatted_propositions = ""
+            # match labels
+            regex = r" \(([0-9]*)\) "
+            matches = re.finditer(regex, propositions, re.MULTILINE)
+            pointer = 0
+            # iterate over matched labels
+            for match in matches:
+                formatted_propositions += propositions[pointer:match.start()]
+                formatted_propositions += "\n" # add new line
+                formatted_propositions += propositions[match.start()+1:match.end()]
+                pointer = match.end()
+            formatted_propositions += propositions[pointer:]
+            return formatted_propositions
+
+        # find all inferences
+        matches = re.finditer(
+            ArgdownParser.INFERENCE_PATTERN_REGEX,
+            argdown_reconstrcution,
+            re.MULTILINE
+        )
+
+        pointer = 0
+        formatted_argdown = ""
+        # iterate over inferences
+        for match in matches:
+            formatted_argdown += newlines_between_propositions(
+                argdown_reconstrcution[pointer : match.start()]
+            )
+            # add new line before inference
+            formatted_argdown += "\n"
+            # add inference (except beginning and trailing whitespace char)
+            formatted_argdown += argdown_reconstrcution[match.start()+1 : match.end()-1]
+            # add new line after inference
+            formatted_argdown += "\n"
+            pointer = match.end()
+        formatted_argdown += newlines_between_propositions(
+            argdown_reconstrcution[pointer:]
+        )
+        return formatted_argdown
+
 
     @abstractmethod
     def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> List[Dict[str,str]]:

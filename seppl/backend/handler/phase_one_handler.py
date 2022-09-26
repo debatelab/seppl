@@ -190,6 +190,7 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
         )
         if "generated_text" in outputs[0]:
             alternative_reco = outputs[0]["generated_text"]
+            alternative_reco = self._inference.postprocess_argdown(alternative_reco)
         else:
             logging.warning("Generation failed for mode %s", mode)
         # Assemble options:

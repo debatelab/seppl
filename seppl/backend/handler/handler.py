@@ -22,6 +22,13 @@ CUE_FIELDS = [
     "source_paraphrase",
 ]
 
+FORM_FIELDS = [
+    "premises_formalized",
+    "intermediary_conclusions_formalized",
+    "conclusion_formalized",
+]
+
+
 @dataclass
 class Request:
     """dataclass representing data passed on to handlers"""

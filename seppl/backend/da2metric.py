@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 import dataclasses
 from itertools import chain, combinations
+from lib2to3.pgen2.pgen import generate_grammar
 import logging
 from typing import Iterable, List, Dict, Any, Optional, Type, Union
 
@@ -296,11 +297,13 @@ class RecoCohSourceScore(ArgdownMetric):
                     mode="s => a"
                 )
                 if output:
-                    self._cache["default_reconstruction"] = output[0].get(
+                    generated_argdown = output[0].get(
                         "generated_text",
                         "default reconstruction"
                     )
-                
+                    generated_argdown = self._inference.postprocess_argdown(generated_argdown)
+                    self._cache["default_reconstruction"] = generated_argdown
+
             cached_items = cached_items + ["default_reconstruction"]
 
         return cached_items
