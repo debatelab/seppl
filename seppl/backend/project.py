@@ -137,6 +137,13 @@ class Project:
             seppl.backend.handler.PhaseOneHandlerRNotAlgn(inference=self.inference),
             seppl.backend.handler.PhaseOneHandlerJNotAlgn(inference=self.inference),
             seppl.backend.handler.PhaseOneHandlerCatchAll(inference=self.inference),
+            # PHASE TWO
+            seppl.backend.handler.PhaseTwoHandlerNoConsUsg(inference=self.inference),
+            seppl.backend.handler.PhaseTwoHandlerNoCompleteForm(inference=self.inference),
+            seppl.backend.handler.PhaseTwoHandlerIllfForm(inference=self.inference),
+            seppl.backend.handler.PhaseTwoHandlerCatchAll(inference=self.inference),
+            #PHASE THREE
+            seppl.backend.handler.PhaseThreeHandlerCatchAll(inference=self.inference),
         ]
         for i in range(1,len(self.handlers)):
             self.handlers[i-1].set_next(

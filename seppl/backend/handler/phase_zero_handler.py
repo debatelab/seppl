@@ -49,7 +49,7 @@ class PhaseZeroHandlerNoCues(PhaseZeroHandler):
     def get_input_options(self, request: Request) -> List[InputOption]:
         """creates empty text input options for all cues"""
         options = OptionFactory.create_text_options(
-            da2_fields=CUE_FIELDS,
+            da2_fields=list(CUE_FIELDS),
             pre_initialized=False,
         )
         logging.info(" PhaseZeroHandlerNoCues created input_options: %s", options)
@@ -73,7 +73,7 @@ class PhaseZeroHandlerNoArgd(PhaseZeroHandler):
     def get_input_options(self, request: Request) -> List[InputOption]:
         """creates empty text input options for argdown
         and further text inputs for all cues"""
-        da2_fields = ["argdown_reconstruction"] + CUE_FIELDS
+        da2_fields = ["argdown_reconstruction"] + list(CUE_FIELDS)
         options = OptionFactory.create_text_options(
             da2_fields=da2_fields,
             da2_item=request.new_da2item,
@@ -145,7 +145,7 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
         mismatch = (
             da2item.argdown_reconstruction and
             da2item.conclusion and
-            metrics.individual_score("ValidArgdownScore") and
+            bool(metrics.individual_score("ValidArgdownScore")) and
             not bool(metrics.individual_score("ConclMatchesRecoScore"))
         )
         return PhaseZeroHandler.is_responsible(self, request) and mismatch
@@ -177,16 +177,21 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
             logging.warning("Generation failed for mode s+c=>a")
         # Assemble options:
         # Take conclusion from argument?
-        options = [ChoiceOption(
-            context=[f"Conclusion in argument reconstruction: {concl_from_ad}"],
-            question="Do you want to use this conclusion?",
-            answers={"yes": concl_from_ad},
-            da2_field="conclusion",
-        )]
+        options: List[InputOption] = [
+            ChoiceOption(
+                context=[f"Conclusion in argument reconstruction: `{concl_from_ad}`"],
+                question="Do you want to use this conclusion?",
+                answers={"yes": concl_from_ad},
+                da2_field="conclusion",
+            )
+        ]
         # Adopt newly generated argument reconstruction?
         if alternative_reco:
             options += [ChoiceOption(
-                context=[f"SEPPL has come up with its own reconstruction:\n {alternative_reco}"],
+                context=[
+                    "SEPPL has come up with its own reconstruction:",
+                    f"``` \n{alternative_reco} \n```"
+                ],
                 question="Do you want to adopt this reconstruction and further improve it?",
                 answers={"yes": alternative_reco},
                 da2_field="argdown_reconstruction",
@@ -233,7 +238,7 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
         else:
             logging.warning("Generation failed for mode s+c=>a")
         # Assemble options:
-        options = []
+        options: List[InputOption] = []
         if alternative_reco:
             options += [TextOption(
                 context=["Based on your hints, SEPPL has come up with "
@@ -244,7 +249,7 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
             )]
         # Manually revise current conclusion or reconstruction?
         options += OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"]+CUE_FIELDS,
+            da2_fields=["argdown_reconstruction"]+list(CUE_FIELDS),
             da2_item=request.new_da2item,
             pre_initialized=True,
         )

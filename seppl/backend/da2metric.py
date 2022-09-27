@@ -9,7 +9,7 @@ from lib2to3.pgen2.pgen import generate_grammar
 import logging
 from typing import Iterable, List, Dict, Any, Optional, Type, Union
 
-from deepa2 import DeepA2Item, DeepA2Parser, DeepA2Layouter, ArgdownStatement
+from deepa2 import DeepA2Item, DeepA2Parser, DeepA2Layouter, ArgdownStatement, DA2_ANGLES_MAP
 from deepa2.parsers import Argument
 import deepa2.metrics.metric_handler as metrics
 from nltk.inference.prover9 import Prover9
@@ -54,6 +54,34 @@ class Util:
         if da2item.source_paraphrase:
             cues.append("h")
         return cues
+
+    @staticmethod
+    def expand_and_format_da2item(da2item: DeepA2Item, argdown: Argument) -> DeepA2Item:
+        """adds premises and conclusions, and layouts da2item"""
+        da2item_tmp = deepcopy(da2item)
+        # add premises, conclusions, and intermediary conclusions to temp da2item
+        if argdown:
+            premises = [s for s in argdown.statements if not s.is_conclusion]
+            conclusion = [argdown.statements[-1]]
+            interm_conclusions = [s for s in argdown.statements[:-1] if s.is_conclusion]
+
+            da2item_tmp.premises=[
+                ArgdownStatement(text=p.text,ref_reco=p.label)
+                for p in premises
+            ]
+            da2item_tmp.intermediary_conclusions=[
+                ArgdownStatement(text=p.text,ref_reco=p.label)
+                for p in interm_conclusions
+            ]
+            da2item_tmp.conclusion=[
+                ArgdownStatement(text=p.text,ref_reco=p.label)
+                for p in conclusion
+            ]
+
+        # layout temporary da2item
+        layouter=DeepA2Layouter()
+        formatted_da2item = layouter.format(da2item_tmp)
+        return formatted_da2item
 
 
 class Metric(ABC):
@@ -121,33 +149,11 @@ class Metric(ABC):
     @property
     def formatted_da2item(self) -> Dict[str,Optional[str]]:
         """return formatted da2item"""
-        da2item_tmp = deepcopy(self.da2item)
-        # add premises, conclusions, and intermediary conclusions to temp da2item
+        parsed_argdown = None
         if "parsed_argdown" in self._cache:
             if self._cache["parsed_argdown"]:
                 parsed_argdown: Argument = self._cache["parsed_argdown"]
-                premises = [s for s in parsed_argdown.statements if not s.is_conclusion]
-                conclusion = [parsed_argdown.statements[-1]]
-                interm_conclusions = [s for s in parsed_argdown.statements[:-1] if s.is_conclusion]
-
-                da2item_tmp.premises=[
-                    ArgdownStatement(text=p.text,ref_reco=p.label)
-                    for p in premises
-                ]
-                da2item_tmp.intermediary_conclusions=[
-                    ArgdownStatement(text=p.text,ref_reco=p.label)
-                    for p in interm_conclusions
-                ]
-                da2item_tmp.conclusion=[
-                    ArgdownStatement(text=p.text,ref_reco=p.label)
-                    for p in conclusion
-                ]
-
-        # layout temporary da2item
-        layouter=DeepA2Layouter()
-        formatted_da2item = layouter.format(da2item_tmp)
-
-        return formatted_da2item
+        return Util.expand_and_format_da2item(self.da2item, parsed_argdown)
 
 
 class ArgdownMetric(Metric):
@@ -557,9 +563,10 @@ class CompleteFormalization(ArgdownMetric):
         all_labels = [s.label for s in parsed_argdown.statements]
         all_formalizations = (
             self.da2item.premises_formalized +
-            self.da2item.intermediary_conclusions_formalized +
             self.da2item.conclusion_formalized
         )
+        if self.da2item.intermediary_conclusions_formalized:
+            all_formalizations += self.da2item.intermediary_conclusions_formalized
         count_non_existing = len(
             [
                 f for f in all_formalizations
@@ -628,7 +635,7 @@ class FormCohRecoScore(ArgdownMetric):
     `p`, `c`, and `i` (extracted from parsed `a`) iff
     1. loss(`fc`, `c+fp+k`) <= loss(`fc`, `fp`) AND
     2. loss(`fp`, `p+fc+fi+k`) <= loss(`fp`, `fc+fi`) AND
-    3. loss(`c`, `fc+fp+k`) <= loss(`c`, `fp+k`) AND
+    (3. loss(`c`, `fc+fp+k`) <= loss(`c`, `fp+k`) AND)
     4. loss(`p`, `fp+fc+fi+k`) <= loss(`p`, `fc+fi+k`).
     """
 
@@ -641,13 +648,22 @@ class FormCohRecoScore(ArgdownMetric):
         ):
             return 1
 
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
+        has_interm_concl = any(s.is_conclusion for s in parsed_argdown.statements[:-1])
+
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
+        # use fi only of interm.concl.formalized exist
+        fi = "+fi" if self.formatted_da2item[DA2_ANGLES_MAP.fi] else ""
         coheres = int(
-            loss("c+fp+k => fc") <= loss("fp => fc") and
-            loss("p+fc+fi+k => fp") <= loss("fc+fi => fp") and
-            loss("fc+fp+k => c") <= loss("fp+k => c") and
-            loss("fp+fc+fi+k => p") <= loss("fc+fi+k => p")
+            loss("c+fp+k => fc") <= loss("c+fp => fc") and
+            loss(f"p+fc{fi}+k => fp") <= loss(f"p+fc{fi} => fp") and
+            (
+                (not has_interm_concl) or 
+                (loss("i+fc+fp+k => fi") <= loss("fc+fp => fi"))
+            ) and
+            # loss("fc+k => c") <= loss("fp+k => c") and  # `c` can be inferred in very easy arguments
+            loss(f"fp{fi}+k => p") <= loss(f"fc{fi}+k => p")
         ) 
         return coheres
 
@@ -895,4 +911,4 @@ class SofaEvaluation:
                             if alt in self._metrics_registry
                         ):
                             return phase
-        return len(RECONSTRUCTION_PHASES)
+        return len(RECONSTRUCTION_PHASES)-1

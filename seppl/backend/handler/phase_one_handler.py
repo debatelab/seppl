@@ -52,7 +52,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
         creates quote input options for reasons and conjectures
         pre-initialized with SEPPL-generated quotes
         """
-        options = []
+        options: List[InputOption] = []
         formatted_da2item = DeepA2Layouter().format(request.new_da2item)
         for field, angle in zip(["reasons","conjectures"],["r","j"]):
             outputs, inference_rater = self._inference.generate(
@@ -100,7 +100,7 @@ class PhaseOneHandlerRNotAlgn(PhaseOneHandler):
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
-        options = []
+        options: List[InputOption] = []
         da2item = request.new_da2item
         options.append(
             QuoteOption(
@@ -139,7 +139,7 @@ class PhaseOneHandlerJNotAlgn(PhaseOneHandler):
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
-        options = []
+        options: List[InputOption] = []
         da2item = request.new_da2item
         options.append(
             QuoteOption(
@@ -194,7 +194,7 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
         else:
             logging.warning("Generation failed for mode %s", mode)
         # Assemble options:
-        options = []
+        options: List[InputOption] = []
         if alternative_reco:
             options += [TextOption(
                 context=["Based on your hints, SEPPL has come up with "
@@ -211,7 +211,7 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
         )
         # Manually revise current cues or reconstruction?
         options += OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"]+CUE_FIELDS,
+            da2_fields=["argdown_reconstruction"]+list(CUE_FIELDS),
             da2_item=request.new_da2item,
             pre_initialized=True,
         )

@@ -9,7 +9,7 @@ license = "APACHE 2.0"
 python = "^3.8,<3.11"
 streamlit = "^1.7.0"
 google-cloud-firestore = "^2.3.4"
-deepa2 = {path = "../deepa2/dist/deepa2-0.1.13b0-py3-none-any.whl"}
+deepa2 = {path = "../deepa2/dist/deepa2-0.1.13rc0-py3-none-any.whl"}
 nltk = "^3.7"
 requests = "^2.28.1"
 

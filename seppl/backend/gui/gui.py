@@ -59,9 +59,9 @@ class _ChoiceOptionStRenderer(_InputOptionStRenderer):
     def render(self):
         """renders the choice option as streamlit gui"""
         st.write(f"## ChoiceOption for: {self._input_option.da2_field}")
-        st.write("### Context\n")
+        st.write("### Context")
         for context_item in self._input_option.context:
-            st.write(context_item)
+            st.markdown(context_item)
         st.write(f"Q: {self._input_option.question}")
         if self._input_option.inference_rater:
             st.write("Display InferenceRater")
@@ -111,7 +111,7 @@ class _QuoteOptionStRenderer(_InputOptionStRenderer):
         """renders the quote option as streamlit gui"""
         st.write(f"## QuoteOption for: {self._input_option.da2_field}")
         if self._input_option.context:
-            st.write("### Context\n")
+            st.write("### Context")
             for context_item in self._input_option.context:
                 st.write(context_item)
 

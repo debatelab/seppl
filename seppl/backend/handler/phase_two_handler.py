@@ -2,27 +2,27 @@
 
 from __future__ import annotations
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import deepa2
-from deepa2.parsers import DeepA2Parser, DeepA2Layouter
+from deepa2.parsers import Argument, DeepA2Layouter
 
 
 from seppl.backend.handler import (
     Request,
     AbstractUserInputHandler,
-    CUE_FIELDS,
     FORM_FIELDS,
 )
 from seppl.backend.inference import InferenceRater
 from seppl.backend.inputoption import (
     InputOption,
-    QuoteOption,
+    ChoiceOption,
     TextOption,
     OptionFactory,
 )
+from seppl.backend.da2metric import Util
 
-
+DA2KEY = deepa2.DA2_ANGLES_MAP
 
 class PhaseTwoHandler(AbstractUserInputHandler):
     """handles requests during reconstruction phase one"""
@@ -38,24 +38,35 @@ class PhaseTwoHandler(AbstractUserInputHandler):
         # TODO: implement!
         return "Default Feedback Phase Two."
 
-    def _generate_formalization(self, request: Request, field: str) -> Tuple[str, InferenceRater]:
+    def _generate_formalization(self, request: Request, field: str) -> Tuple[Optional[str], Optional[InferenceRater]]:
         """generates formalization for given field, uses all available formalizations"""
         if field not in FORM_FIELDS:
             logging.warning("PhaseTwoHandler: cannot generate formalization for field %s", field)
             return None, None
-        # propositions to be formalized
-        props_field = field[:-len("_formalized")]
-        props = request.metrics.from_cache(props_field)
-        if not props:
-            logging.info("PhaseTwoHandler: nothing to formalize for field %s", field)
+        # get parsed argument
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if not parsed_argdown:
             return None, None
+        # append premises and conclusion to da2item and format
+        formatted_da2item = Util.expand_and_format_da2item(request.new_da2item, parsed_argdown)
+        # key of propositions to be formalized
+        if field == DA2KEY.fp:
+            props_field = DA2KEY.p
+        elif field == DA2KEY.fc:
+            props_field = DA2KEY.c
+        elif field == DA2KEY.fi:
+            props_field = DA2KEY.i
+        else:
+            logging.warning("PhaseTwoHandler: cannot match formalization "
+            "field %s to proposition", field)
+            return None, None
+        # available formalizations to be used as inputs
         avail_formalizations = [
-            ff for ff in FORM_FIELDS+["plchd_substitutions"]
-            if request.new_da2item[ff] and ff != field
+            ff for ff in list(FORM_FIELDS)+[DA2KEY.k]
+            if formatted_da2item[ff] and ff != field
         ]
-        formatted_da2item = DeepA2Layouter().format(request.new_da2item)
         mode = deepa2.GenerativeMode(
-            name = "not_used",
+            name = "name_is_not_used",
             target = field,
             input = [props_field]+avail_formalizations,
         )
@@ -92,9 +103,38 @@ class PhaseTwoHandlerNoConsUsg(PhaseTwoHandler):
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
-        """creates text input option for argdown"""
+        """creates options for argdown"""
+        # generate alternative reconstruction with LLM
+        alternative_reco = None
+        # format argdown
+        formatted_da2item = DeepA2Layouter().format(request.new_da2item)
+        # declare current argdown as erroneaous reconstruction
+        formatted_da2item[DA2KEY.e] = formatted_da2item[DA2KEY.e]
+        outputs, inference_rater = self._inference.generate(
+            inputs=formatted_da2item,
+            mode="s+e => a",
+        )
+        if "generated_text" in outputs[0]:
+            alternative_reco = outputs[0]["generated_text"]
+            alternative_reco = self._inference.postprocess_argdown(alternative_reco)
+        else:
+            logging.warning("PhaseTwoHandlerNoConsUsg: Generation failed for mode s+e=>a")
+        # Assemble options
+        options: List[InputOption] = []
+        # Adopt newly generated argument reconstruction?
+        if alternative_reco:
+            options += [ChoiceOption(
+                context=[
+                    "SEPPL has come up with its own reconstruction:",
+                    f"``` \n{alternative_reco} \n```"
+                ],
+                question="Do you want to adopt this reconstruction and further improve it?",
+                answers={"yes": alternative_reco},
+                da2_field="argdown_reconstruction",
+                inference_rater=inference_rater,
+            )]
         options = OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"],
+            da2_fields=[DA2KEY.a],
             da2_item=request.new_da2item,
             pre_initialized=True,
         )
@@ -125,30 +165,57 @@ class PhaseTwoHandlerNoCompleteForm(PhaseTwoHandler):
         creates text input options for formalizations
         pre-initialized with SEPPL-generated formalizations
         """
-        options = []
-        formatted_da2item = DeepA2Layouter().format(request.new_da2item)
-        for field in FORM_FIELDS:
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if not parsed_argdown:
+            logging.error("PhaseTwoHandlerNoCompleteForm: no parsed argdown")
+            return []
+        # expand and format da2item
+        formatted_da2item = Util.expand_and_format_da2item(request.new_da2item, parsed_argdown)
+        # don't ask to formalize intermediary conclusions if they don't exist
+        form_fields = list(FORM_FIELDS)
+        if not any(s.is_conclusion for s in parsed_argdown.statements[:-1]):
+            form_fields.remove(DA2KEY.fi)
+        # sort form_fields according to whether field is filled (empty first)
+        form_fields.sort(key=lambda x: bool(formatted_da2item[x]))
+        # create pre-initialized text options for formalizations
+        options: List[InputOption] = []
+        for field in form_fields:
             if formatted_da2item[field]:
                 initial_text = formatted_da2item[field]
                 inference_rater = None
+                context = None
             else:
                 # if no formalization exists, generate one
                 initial_text, inference_rater = self._generate_formalization(request, field)
-            # create and append text option 
+                context = ["SEPPL suggests the following formalization."]
+            # create and append text option
             options.append(
                 TextOption(
                     initial_text=initial_text,
                     inference_rater=inference_rater,
                     da2_field=field,
+                    context=context,
                     question=f"Please add or revise {field}.",
                 )
             )
-        # TextOption for argdown reconstruction 
-        options += OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"],
+        # Further options
+        option_fields = []
+        # Option to add/revise keys, if some formalization has already been provided
+        if any(getattr(request.new_da2item,ff) for ff in FORM_FIELDS):
+            option_fields.append(DA2KEY.k)
+        # argdown reconstruction
+        option_fields.append(DA2KEY.a)
+        # Create further TextOptions
+        further_options: List[InputOption] = OptionFactory.create_text_options(
+            da2_fields=option_fields,
             da2_item=request.new_da2item,
             pre_initialized=True,
         )
+        # if all formalizations have been provided, ask for keys first
+        if all(bool(formatted_da2item[x]) for x in form_fields):
+            options = further_options + options
+        else:
+            options = options + further_options
 
         logging.info(" PhaseTwoHandlerNoForm created input_options: %s", options)
         return options
@@ -159,38 +226,63 @@ class PhaseTwoHandlerIllfForm(PhaseTwoHandler):
     """handles phase two requests if some formalization is not well formed (substep 4)"""
 
     def is_responsible(self, request: Request) -> bool:
-        """checks if argdown reconstruction and conjectures are provided and don't match (WellFormedFormScore)"""
+        """checks if formalizations is well formed (WellFormedFormScore / WellFormedKeysScore)"""
         da2item = request.new_da2item
         metrics = request.metrics
-        mismatch = (
+        illf = (
             da2item.argdown_reconstruction and
-            da2item.conjectures and
-            not bool(metrics.individual_score("ConjecturesAlignedScore"))
+            bool(metrics.individual_score("CompleteFormalization")) and
+            (
+                not bool(metrics.individual_score("WellFormedFormScore")) or
+                not bool(metrics.individual_score("WellFormedKeysScore"))
+            )
         )
-        return PhaseTwoHandler.is_responsible(self, request) and mismatch
+        return PhaseTwoHandler.is_responsible(self, request) and illf
 
     def get_feedback(self, request: Request) -> str:
-        feedback = super().get_feedback(request)
-        feedback += " But the conjecture statements identified don't refer to premises in your argument reconstruction."
+        metrics = request.metrics
+        feedback = super().get_feedback(request) + " But: "
+        if not metrics.individual_score("WellFormedFormScore"):
+            feedback += """ Some formalizations are not well formed."""
+        if not metrics.individual_score("WellFormedKeysScore"):
+            feedback += """ Some keys don't match the formalizations."""
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
-        options = []
-        da2item = request.new_da2item
-        options.append(
-            QuoteOption(
-                source_text=da2item.source_text,
-                initial_quotes=da2item.conjectures,
-                da2_field="conjectures",
-                question="Please add or revise conjectures given you argument reconstruction.",
-            )
-        )
-        # Manually revise current reconstruction?
-        options += OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"],
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if not parsed_argdown:
+            logging.error("PhaseTwoHandlerNoIllForm: no parsed argdown")
+            return []
+        # don't ask to formalize intermediary conclusions if they don't exist
+        cache_fields = [
+            "parsed_p_formalizations",
+            "parsed_ic_formalizations",
+            "parsed_c_formalizations",
+        ]
+        form_fields = list(FORM_FIELDS)
+        if not any(s.is_conclusion for s in parsed_argdown.statements[:-1]):
+            form_fields.remove(DA2KEY.fi)
+            cache_fields.remove("parsed_ic_formalizations")
+        # ignore all fields with well-formed formalizations
+        for cuef, formf in zip(cache_fields, form_fields):
+            if request.metrics.from_cache(cuef):
+                form_fields.remove(formf)
+                cache_fields.remove(cuef)
+
+        # create pre-initialized text options for remaining (i.e. ill-formed) formalizations
+        da2_fields = form_fields
+        # plus, if ill-formed, for keys
+        if not request.metrics.individual_score("WellFormedKeysScore"):
+            da2_fields += [DA2KEY.k]
+
+        # create options
+        options = OptionFactory.create_text_options(
+            da2_fields=da2_fields,
             da2_item=request.new_da2item,
             pre_initialized=True,
         )
+
+        logging.debug(" PhaseTwoHandlerIllfForm created input_options: %s", options)
         return options
 
 
@@ -202,10 +294,8 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         return PhaseTwoHandler.is_responsible(self, request)
 
     def get_feedback(self, request: Request) -> str:
-        feedback = super().get_feedback(request)
+        feedback = super().get_feedback(request) + " But: "
         metrics = request.metrics
-        if not metrics.individual_score("WellFormedKeysScore"):
-            feedback += " The keys don't match your formalization."
         if not metrics.individual_score("FormCohRecoScore"):
             feedback += """ Given your keys, the formalization doesn't cohere with
             your argument reconstruction."""
@@ -218,18 +308,20 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
-        # Generate alternative reconstruction, given CUEs
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if not parsed_argdown:
+            logging.error("PhaseTwoHandlerNoCompleteForm: no parsed argdown")
+            return []
+        # Generate alternative reconstruction, given premises and conclusion of current argument
         alternative_reco = None
-        formatted_da2item = DeepA2Layouter().format(request.new_da2item)
-        available_cues = [c for c in CUE_FIELDS if getattr(request.new_da2item,c)]
-        available_quotes = [
-            q for q in ["reasons", "conjectures"]
-            if getattr(request.new_da2item,q)
-        ]
+        formatted_da2item = Util.expand_and_format_da2item(
+            request.new_da2item,
+            parsed_argdown,
+        )
         mode = deepa2.GenerativeMode(
-            name=None,
-            target="argdown_reconstruction",
-            input=["source_text"] + available_quotes + available_cues,
+            name = "name_is_not_used",
+            target = DA2KEY.a,
+            input = [DA2KEY.p, DA2KEY.c],
         )
         outputs, inference_rater = self._inference.generate(
             inputs=formatted_da2item,
@@ -238,28 +330,36 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         if "generated_text" in outputs[0]:
             alternative_reco = outputs[0]["generated_text"]
             alternative_reco = self._inference.postprocess_argdown(alternative_reco)
+            logging.debug("PhaseTwoHandler: generated alternative_reco = %s", alternative_reco)
         else:
             logging.warning("Generation failed for mode %s", mode)
-        # Assemble options:
-        options = []
+
+        # Assemble options
+        da2_fields  = [DA2KEY.a]
+        da2_fields += list(FORM_FIELDS)
+        da2_fields += [DA2KEY.k]
+        # ignore intermediary conclusions if they don't exist
+        if not any(s.is_conclusion for s in parsed_argdown.statements[:-1]):
+            da2_fields.remove(DA2KEY.fi)
+
+        options: List[InputOption] = []
+
         if alternative_reco:
-            options += [TextOption(
-                context=["Based on your hints, SEPPL has come up with "
-                "an alternative reconstruction. Feel free to adapt it."],
-                initial_text=alternative_reco,
-                da2_field="argdown_reconstruction",
+            options += [ChoiceOption(
+                context=[
+                    "SEPPL has come up with its own reconstruction:",
+                    f"``` \n{alternative_reco} \n```"
+                ],
+                question="Do you want to adopt this reconstruction and further improve it?",
+                answers={"yes": alternative_reco},
+                da2_field=DA2KEY.a,
                 inference_rater=inference_rater,
             )]
-        # Manually revise current quotes?
-        options += OptionFactory.create_quote_options(
-            da2_fields=["reasons", "conjectures"],
-            da2_item=request.new_da2item,
-            pre_initialized=True,
-        )
-        # Manually revise current cues or reconstruction?
+
         options += OptionFactory.create_text_options(
-            da2_fields=["argdown_reconstruction"]+CUE_FIELDS,
+            da2_fields=da2_fields,
             da2_item=request.new_da2item,
             pre_initialized=True,
         )
+
         return options

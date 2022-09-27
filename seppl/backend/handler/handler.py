@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Any, List
 from dataclasses import dataclass
 
-from deepa2 import DeepA2Item
+from deepa2 import DeepA2Item, DA2_ANGLES_MAP
 
 from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
@@ -15,18 +15,18 @@ from seppl.backend.userinput import UserInput
 from seppl.backend.da2metric import SofaEvaluation
 from seppl.backend.inputoption import InputOption
 
-CUE_FIELDS = [
-    "conclusion",
-    "gist",
-    "context",
-    "source_paraphrase",
-]
+CUE_FIELDS = (
+    DA2_ANGLES_MAP.c,
+    DA2_ANGLES_MAP.g,
+    DA2_ANGLES_MAP.x,
+    DA2_ANGLES_MAP.h,
+)
 
-FORM_FIELDS = [
-    "premises_formalized",
-    "intermediary_conclusions_formalized",
-    "conclusion_formalized",
-]
+FORM_FIELDS = (
+    DA2_ANGLES_MAP.fp,
+    DA2_ANGLES_MAP.fi,
+    DA2_ANGLES_MAP.fc,
+)
 
 
 @dataclass
@@ -35,8 +35,8 @@ class Request:
     query: UserInput
     state_of_analysis: pjt.StateOfAnalysis
     global_step: int
+    metrics: Optional[SofaEvaluation] = None # will be created by first handler
     new_da2item: DeepA2Item = None  # will be created by first handler
-    metrics: SofaEvaluation = None  # will be created by first handler
 
 
 class Handler(ABC):
@@ -62,10 +62,10 @@ class AbstractUserInputHandler(Handler):
     returning a new state of analysis, included a list of options for next user input.
     """
 
-    _next_handler: Handler = None
-    _inference: AbstractInferencePipeline = None
+    _next_handler: Optional[Handler] = None
+    _inference: AbstractInferencePipeline
 
-    def __init__(self, inference: AbstractInferencePipeline = None):
+    def __init__(self, inference: AbstractInferencePipeline):
         self._inference = inference
 
     def set_next(self, handler: Handler) -> Handler:
