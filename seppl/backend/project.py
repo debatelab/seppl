@@ -52,14 +52,17 @@ class StateOfAnalysis:
         inference: AbstractInferencePipeline = None,
         global_step: int = 0,
         resumes_from_step: int = 0,
-        input_options: Optional[List[InputOption]] = None,
+        input_options: List[InputOption] = None,
     ):
         self.project_id = project_id
         self.global_step = global_step
         self.resumes_from_step = resumes_from_step
         self.visible_option = 0
         self.feedback = "That was excellent!"
-        self._input_options = input_options
+        if input_options is None:
+            self._input_options = []
+        else:
+            self._input_options = input_options
         self.da2item = DeepA2Item(source_text = source_text)
         self.metrics = SofaEvaluation(inference = inference)
 
@@ -84,12 +87,12 @@ class StateOfAnalysis:
         self._user_input = user_input
 
     def create_revision(self,
-        global_step: int = None,
-        user_input: UserInput = None,
-        input_options: List[InputOption] = None,
+        global_step: int,
+        user_input: UserInput,
+        input_options: List[InputOption],
+        metrics: SofaEvaluation,
+        da2item: DeepA2Item,
         feedback: str = None,
-        metrics: SofaEvaluation = None,
-        da2item: DeepA2Item = None,
         **kwargs,
     ) -> StateOfAnalysis:
         """
@@ -109,7 +112,7 @@ class StateOfAnalysis:
 class Project:
     """representation of a reconstruction project"""
 
-    inference: AbstractInferencePipeline = None
+    inference: AbstractInferencePipeline
     project_id: str  # unique identifier of this project
     global_step: int  # global counter of sofas in project history
 
@@ -159,7 +162,7 @@ class Project:
         self.state_of_analysis.visible_option = i_vis
 
 
-    def update(self, query: Optional[UserInput]):
+    def update(self, query: UserInput):
         """update the project given user input query"""
         self.global_step += 1
         request = Request(

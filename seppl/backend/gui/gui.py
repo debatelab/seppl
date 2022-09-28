@@ -23,12 +23,12 @@ class _InputOptionStRenderer(ABC):
     """
 
     _input: Any = None
-    _input_option: InputOption = None
-    _submit: Callable = None # reference to project renderer's submit method
+    _input_option: InputOption
+    _submit: Optional[Callable] # reference to project renderer's submit method
 
     def __init__(self,
-        submit: Callable = None,
-        input_option: InputOption = None,
+        submit: Callable,
+        input_option: InputOption,
     ):
         self._submit = submit
         self._input_option = input_option
@@ -54,7 +54,7 @@ class _InputOptionStRenderer(ABC):
 class _ChoiceOptionStRenderer(_InputOptionStRenderer):
     """renders a ChoiceOption"""
 
-    _input_option: ChoiceOption = None
+    _input_option: ChoiceOption
 
     def render(self):
         """renders the choice option as streamlit gui"""
@@ -76,7 +76,7 @@ class _ChoiceOptionStRenderer(_InputOptionStRenderer):
 class _TextOptionStRenderer(_InputOptionStRenderer):
     """renders a TextOption"""
 
-    _input_option: TextOption = None
+    _input_option: TextOption
 
     def render(self):
         """renders the text option as streamlit gui"""
@@ -105,7 +105,7 @@ class _TextOptionStRenderer(_InputOptionStRenderer):
 class _QuoteOptionStRenderer(_InputOptionStRenderer):
     """renders a QuoteOption"""
 
-    _input_option: QuoteOption = None
+    _input_option: QuoteOption
 
     def render(self):
         """renders the quote option as streamlit gui"""
@@ -150,7 +150,7 @@ class ProjectStRenderer:
     def option_gui_factory(self, option: InputOption) -> _InputOptionStRenderer:
         """creates gui for option"""
         logging.debug(option)
-        option_gui = None
+        option_gui: _InputOptionStRenderer
         if isinstance(option, ChoiceOption):
             option_gui = _ChoiceOptionStRenderer(
                 submit=self.submit,
@@ -166,6 +166,8 @@ class ProjectStRenderer:
                 submit=self.submit,
                 input_option=option
             )
+        else:
+            raise ValueError(f"Cannot render unknown option type: {type(option)}")
         return option_gui
 
 

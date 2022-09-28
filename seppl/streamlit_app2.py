@@ -10,7 +10,6 @@ from seppl.backend.inputoption import ChoiceOption
 from seppl.backend.inference import inference_factory
 
 logging.basicConfig(
-    encoding='utf-8',
     level=logging.DEBUG,
     format='%(asctime)s %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p'

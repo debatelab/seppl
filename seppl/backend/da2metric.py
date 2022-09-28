@@ -88,17 +88,17 @@ class Metric(ABC):
     """abstract base class of individual metric"""
 
     #inference pipeline
-    _inference: AbstractInferencePipeline = None
+    _inference: AbstractInferencePipeline
     # cache, especially for default_reconstruction
-    _cache: Dict[str,Any] = None
+    _cache: Dict[str,Any]
     # da2item to be evaluated
     da2item: DeepA2Item = None
     # current score of metric
-    score: Union[int, float] = None
+    score: Optional[Union[int, float]] = None
 
     def __init__(self,
-        inference: AbstractInferencePipeline = None,
-        cache: Dict[str, Any] = None,
+        inference: AbstractInferencePipeline,
+        cache: Dict[str, Any],
         da2item: DeepA2Item = None,
     ):
         self._inference = inference
@@ -121,8 +121,8 @@ class Metric(ABC):
         """calculates metric"""
 
     def update_cache(self,
-        da2item: DeepA2Item = None,  # pylint: disable=unused-argument
-        cached_items_updated: List[str] = None
+        da2item: DeepA2Item,  # pylint: disable=unused-argument
+        cached_items_updated: List[str]
     ) -> List[str]:
         """
         update any cached items
@@ -149,10 +149,10 @@ class Metric(ABC):
     @property
     def formatted_da2item(self) -> Dict[str,Optional[str]]:
         """return formatted da2item"""
-        parsed_argdown = None
+        parsed_argdown: Argument = None
         if "parsed_argdown" in self._cache:
             if self._cache["parsed_argdown"]:
-                parsed_argdown: Argument = self._cache["parsed_argdown"]
+                parsed_argdown = self._cache["parsed_argdown"]
         return Util.expand_and_format_da2item(self.da2item, parsed_argdown)
 
 
@@ -160,8 +160,8 @@ class ArgdownMetric(Metric):
     """metric that requires parsed argdown"""
 
     def update_cache(self,
-        da2item: DeepA2Item = None,
-        cached_items_updated: List[str] = None
+        da2item: DeepA2Item,
+        cached_items_updated: List[str]
     ) -> List[str]:
         """update cache with newly provided da2item"""
         cached_items = cached_items_updated
@@ -282,8 +282,8 @@ class RecoCohSourceScore(ArgdownMetric):
         return int(coheres)
 
     def update_cache(self,
-        da2item: DeepA2Item = None,
-        cached_items_updated: List[str] = None
+        da2item: DeepA2Item,
+        cached_items_updated: List[str]
     ) -> List[str]:
         """create default reconstruction, if not available (or source text has changed)"""
         # call super method
@@ -379,8 +379,8 @@ class ReasonsAlignedScore(ArgdownMetric):
 
     @property
     def satisficed(self) -> bool:
-        """are all reasons aligned?"""
-        return bool(round(self.score,5) >= 1)
+        """are all reasons aligned?"""    
+        return bool(round(self.score,5) >= 1) if self.score is not None else False
 
 
 
@@ -414,7 +414,7 @@ class ConjecturesAlignedScore(ArgdownMetric):
     @property
     def satisficed(self) -> bool:
         """are all conjectures aligned?"""
-        return bool(round(self.score,5) >= 1)
+        return bool(round(self.score,5) >= 1) if self.score is not None else False
 
 
 class ReasConjCohRecoScore(Metric):
@@ -471,8 +471,8 @@ class FormalizationMetric(Metric):
     """metric that requires parsed formalization"""
 
     def update_cache(self,
-        da2item: DeepA2Item = None,
-        cached_items_updated: List[str] = None
+        da2item: DeepA2Item,
+        cached_items_updated: List[str]
     ) -> List[str]:
         cached_items = cached_items_updated
         citems_to_update = [
@@ -592,7 +592,7 @@ class CompleteFormalization(ArgdownMetric):
     @property
     def satisficed(self) -> bool:
         """is every statement formalized exactly once?"""
-        return bool(round(self.score,5) >= 1)
+        return bool(round(self.score,5) >= 1) if self.score is not None else False
 
 
 
@@ -764,7 +764,7 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
     @property
     def satisficed(self) -> bool:
         """are all inference steps deductively valid?"""
-        return bool(round(self.score,5) >= 1)
+        return bool(round(self.score,5) >= 1) if self.score is not None else False
 
     def critical_angles(self) -> List[str]:
         c_angles = (
@@ -774,8 +774,8 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
         return c_angles
 
     def update_cache(self,
-        da2item: DeepA2Item = None,
-        cached_items_updated: List[str] = None
+        da2item: DeepA2Item,
+        cached_items_updated: List[str]
     ) -> List[str]:
         cached_items = cached_items_updated
         cached_items = FormalizationMetric.update_cache(self, da2item, cached_items)
@@ -788,18 +788,18 @@ class SofaEvaluation:
     """class to evaluate a da2item with respect to set of metrics"""
 
     #inference pipeline
-    _inference: AbstractInferencePipeline = None
+    _inference: AbstractInferencePipeline
     # cache, especially for default_reconstruction
-    _cache: Dict[str, Any] = None
+    _cache: Dict[str, Any]
     # registry of metrics
-    _metrics_registry: Dict[str, Metric] = None
+    _metrics_registry: Dict[str, Metric]
     # mapping of metrics to reconstruction phases
-    _metric_phase: Dict[str, int] = None
+    _metric_phase: Dict[str, int]
     # mapping of metrics to alternatives that may be satisficed for reconstruction phases
-    _alternative_metrics: Dict[str, List[str]] = None
+    _alternative_metrics: Dict[str, List[str]]
 
     def __init__(self,
-        inference: AbstractInferencePipeline = None,
+        inference: AbstractInferencePipeline,
     ):
         self._inference = inference
         self._cache = {}
@@ -845,7 +845,7 @@ class SofaEvaluation:
 
     def register_metric(
         self,
-        metric_class: Type[Metric] = None,
+        metric_class: Type[Metric],
         phase: int = -1,
         alternatives: List[Type[Metric]] = None
     ) -> None:
@@ -863,7 +863,7 @@ class SofaEvaluation:
     def update(self, da2item: DeepA2Item = None) -> None:
         """update cache and metric scores"""
         # update cache
-        cached_items_updated = []
+        cached_items_updated: List[str] = []
         for metric in self._metrics_registry.values():
             cached_items_updated = metric.update_cache(da2item, cached_items_updated)
 
@@ -871,7 +871,7 @@ class SofaEvaluation:
         for metric in self._metrics_registry.values():
             metric.update_score(da2item)
 
-    def individual_score(self, metric_name = Metric) -> Union[float,int]:
+    def individual_score(self, metric_name = Metric) -> Optional[Union[float,int]]:
         """get individual score of metric by name"""
         metric = self._metrics_registry.get(metric_name)
         if metric:
@@ -880,7 +880,7 @@ class SofaEvaluation:
             # metric not registered
             return None
 
-    def all_scores(self) -> Dict[str,Union[float,int]]:
+    def all_scores(self) -> Dict[str,Optional[Union[float,int]]]:
         """get scores of all registered metrics as dict"""
         scores = {
             key: metric.score

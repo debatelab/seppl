@@ -26,9 +26,9 @@ class UserInput(ABC):
         self._raw_input: str = raw_input
         self.da2_field: str = da2_field
 
-    @abstractmethod
     def cast(self) -> Any:
         """casts raw input as component of da2item"""
+        return self._raw_input
 
     def update_da2item(self, da2_item: DeepA2Item = None) -> Any:
         """updates the da2item (no copy!) given the current raw input"""

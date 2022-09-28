@@ -35,8 +35,24 @@ class Request:
     query: UserInput
     state_of_analysis: pjt.StateOfAnalysis
     global_step: int
-    metrics: Optional[SofaEvaluation] = None # will be created by first handler
-    new_da2item: DeepA2Item = None  # will be created by first handler
+    _metrics: Optional[SofaEvaluation] = None # will be created by first handler
+    new_da2item: DeepA2Item = None  # will be set by first handler
+
+    @property
+    def metrics(self) -> SofaEvaluation:
+        """metrics of current state of analysis"""
+        if self._metrics is None:
+            raise ValueError("Fatal Error: SOFA metrics accessed before calculated")
+        return self._metrics
+
+    @metrics.setter
+    def metrics(self, metrics: SofaEvaluation) -> None:
+        """sets input options"""
+        self._metrics = metrics
+
+    def has_metrics(self) -> bool:
+        """returns True if metrics are calculated and set"""
+        return self._metrics is not None
 
 
 class Handler(ABC):
@@ -93,7 +109,7 @@ class AbstractUserInputHandler(Handler):
     ) -> List[InputOption]:
         """creates input options for next user-input"""
 
-    def handle(self, request: Request) -> Optional[pjt.StateOfAnalysis]:
+    def handle(self, request: Request) -> pjt.StateOfAnalysis:
         """defines the global strategy for processing user input"""
         logging.info("currently handling request: %s", type(self))
 
@@ -108,7 +124,7 @@ class AbstractUserInputHandler(Handler):
             logging.info("  updated da2item: %s", new_da2item)
 
         # evaluate revised analysis and update metrics
-        if not request.metrics:
+        if not request.has_metrics():
             metrics = deepcopy(old_sofa.metrics)
             metrics.update(new_da2item)
             request.metrics = metrics
@@ -146,6 +162,4 @@ class AbstractUserInputHandler(Handler):
             logging.info("  passing on to next handler: %s", type(self._next_handler))
             return self._next_handler.handle(request)
 
-        logging.info("stopping chain")
-
-        return None
+        raise Exception("No handler responsible for request: %s", request)

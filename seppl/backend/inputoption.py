@@ -20,9 +20,9 @@ class InputOption():
     contains a question / task-formulation
     contains id(str) of intended input_type to-be returned
     """
+    da2_field: str
     context: Optional[List[Any]] = None
     question: Optional[str] = None
-    da2_field: Optional[str] = None
     inference_rater: Optional[InferenceRater] = None
 
 @dataclass
