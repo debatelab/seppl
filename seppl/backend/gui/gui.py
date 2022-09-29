@@ -184,7 +184,14 @@ class ProjectStRenderer:
                 in self._project.state_of_analysis.metrics.all_scores().items()
             ]
             st.table(data=metric_data)
-        st.write(f"phase: {self._project.state_of_analysis.metrics.reconstruction_phase}")
+            st.write(
+                {
+                    "phase": self._project.state_of_analysis.metrics.reconstruction_phase,
+                    "completeness": self._project.state_of_analysis.metrics.completeness,
+                    "correctness": self._project.state_of_analysis.metrics.correctness,
+                    "depth": self._project.state_of_analysis.metrics.depth,
+                }
+            )
         
         if self._project.state_of_analysis.global_step>0:
             st.write(f"feedback: {self._project.state_of_analysis.feedback}")

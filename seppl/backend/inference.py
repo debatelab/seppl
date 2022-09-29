@@ -9,7 +9,7 @@ from typing import Optional, Dict, List, Tuple, Any, Union
 
 from deepa2 import GenerativeMode
 from deepa2.parsers import ArgdownParser
-import requests
+import requests  # type: ignore
 
 class InferenceRater:
     """object for rating inference results (generation)"""
@@ -37,36 +37,36 @@ class AbstractInferencePipeline(ABC):
 
     def generate_with_chain(
         self,
-        inputs: Dict[str,str] = None,
-        chain: List[str] = None,
+        inputs: Dict[str,str],
+        chain: List[str],
         **kwargs
     ) -> Dict[str,str]:
         """
         generates output by iterating over modes in chain
         uses internal _generate()
-        """
+        """        
         #cast modes
-        chain: List[GenerativeMode] = [GenerativeMode.from_keys(mode) for mode in chain]
+        chain_gm: List[GenerativeMode] = [GenerativeMode.from_keys(mode) for mode in chain]
         # TODO check that chain is valid
         #start with input
         data = inputs.copy()
         # iterate over chain
-        for mode in chain:
+        for mode in chain_gm:
             outputs = self._generate(inputs=data, mode=mode, **kwargs)
             if "generated_text" in outputs[0]:
                 generated_text = outputs[0]["generated_text"]
                 data.update({mode.target:generated_text})
             else:
-                logging.warning("generation failed in chain %s at step %s", chain, mode)
-                return [{"error": f"generation failed in step {mode}"}]
+                logging.warning("generation failed in chain %s at step %s", chain_gm, mode)
+                return {"error": f"generation failed in step {mode}"}
         return data
 
     def generate(
         self,
-        inputs: Dict[str,str] = None,
-        mode: Union[str, GenerativeMode] = None,
+        inputs: Dict[str,str],
+        mode: Union[str, GenerativeMode],
         **kwargs
-    ) -> Tuple[List[Dict[str,str]], InferenceRater]:
+    ) -> Tuple[List[Dict[str,str]], Optional[InferenceRater]]:
         """
         generates output
         uses internal _generate()
@@ -88,7 +88,7 @@ class AbstractInferencePipeline(ABC):
             )
         return outputs, inference_rater
 
-    def construct_prompt(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None) -> str:
+    def construct_prompt(self, inputs: Dict[str,str], mode: GenerativeMode) -> str:
         """construct_prompt"""
         prompt = f"{mode.target}:"
         for input_key in mode.input:
@@ -146,11 +146,11 @@ class AbstractInferencePipeline(ABC):
 
 
     @abstractmethod
-    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> List[Dict[str,str]]:
+    def _generate(self, inputs: Dict[str,str], mode: GenerativeMode, **kwargs) -> List[Dict[str,str]]:
         """generates output"""
 
     @abstractmethod
-    def loss(self, inputs: Dict[str,str] = None, mode: str = None) -> float:
+    def loss(self, inputs: Dict[str,str], mode: str) -> Optional[float]:
         """calculates loss"""
 
 
@@ -177,7 +177,7 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
         self.timeout = timeout
 
 
-    def _generate(self, inputs: Dict[str,str] = None, mode: GenerativeMode = None, **kwargs) -> List[Dict[str,str]]:
+    def _generate(self, inputs: Dict[str,str], mode: GenerativeMode, **kwargs) -> List[Dict[str,str]]:
         """generates output"""
         # construct input text
         input_text = self.construct_prompt(inputs=inputs, mode=mode)
@@ -207,12 +207,12 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
 
         return [result_json]
 
-    def loss(self, inputs: Dict[str,str] = None, mode: str = None) -> Optional[float]:
+    def loss(self, inputs: Dict[str,str], mode: str) -> Optional[float]:
         """calculate loss"""
         # construct input and target texts
-        mode: GenerativeMode = GenerativeMode.from_keys(mode)
-        input_text = self.construct_prompt(inputs=inputs, mode=mode)
-        target_text = inputs[mode.target]
+        mode_gm: GenerativeMode = GenerativeMode.from_keys(mode)
+        input_text = self.construct_prompt(inputs=inputs, mode=mode_gm)
+        target_text = inputs[mode_gm.target]
         # pack payload
         payload = {
             "input": input_text,

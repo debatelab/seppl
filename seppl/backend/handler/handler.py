@@ -11,8 +11,9 @@ from deepa2 import DeepA2Item, DA2_ANGLES_MAP
 
 from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
+from seppl.backend.state_of_analysis import StateOfAnalysis
 from seppl.backend.userinput import UserInput
-from seppl.backend.da2metric import SofaEvaluation
+from seppl.backend.da2metric import SofaMetrics
 from seppl.backend.inputoption import InputOption
 
 CUE_FIELDS = (
@@ -33,20 +34,20 @@ FORM_FIELDS = (
 class Request:
     """dataclass representing data passed on to handlers"""
     query: UserInput
-    state_of_analysis: pjt.StateOfAnalysis
+    state_of_analysis: StateOfAnalysis
     global_step: int
-    _metrics: Optional[SofaEvaluation] = None # will be created by first handler
+    _metrics: Optional[SofaMetrics] = None # will be created by first handler
     new_da2item: DeepA2Item = None  # will be set by first handler
 
     @property
-    def metrics(self) -> SofaEvaluation:
+    def metrics(self) -> SofaMetrics:
         """metrics of current state of analysis"""
         if self._metrics is None:
             raise ValueError("Fatal Error: SOFA metrics accessed before calculated")
         return self._metrics
 
     @metrics.setter
-    def metrics(self, metrics: SofaEvaluation) -> None:
+    def metrics(self, metrics: SofaMetrics) -> None:
         """sets input options"""
         self._metrics = metrics
 
@@ -109,7 +110,7 @@ class AbstractUserInputHandler(Handler):
     ) -> List[InputOption]:
         """creates input options for next user-input"""
 
-    def handle(self, request: Request) -> pjt.StateOfAnalysis:
+    def handle(self, request: Request) -> StateOfAnalysis:
         """defines the global strategy for processing user input"""
         logging.info("currently handling request: %s", type(self))
 

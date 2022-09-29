@@ -156,6 +156,38 @@ class Metric(ABC):
         return Util.expand_and_format_da2item(self.da2item, parsed_argdown)
 
 
+class GlobalCompletenessScore(Metric):
+    """scores ratio of essential da2 fields that are not None"""
+
+    _ignored_fields: str = "stghxe"
+
+    def calculate(self):
+        if not self.da2item:
+            return 0
+        count_not_none = 0
+        count_all = 0
+        for field in dataclasses.fields(DA2_ANGLES_MAP):
+            if field.name not in self._ignored_fields:
+                count_all += 1
+                if getattr(self.da2item, getattr(DA2_ANGLES_MAP, field.name)):
+                    count_not_none += 1
+
+        score = count_not_none / count_all
+        return score
+
+    @property
+    def satisficed(self) -> bool:
+        """are there any essential da2 fields provided?"""    
+        return bool(self.score)
+
+    def critical_angles(self) -> List[str]:
+        return [
+            getattr(DA2_ANGLES_MAP,field.name)
+            for field in dataclasses.fields(DA2_ANGLES_MAP)
+            if field.name not in self._ignored_fields
+        ]
+
+
 class ArgdownMetric(Metric):
     """metric that requires parsed argdown"""
 
@@ -218,6 +250,25 @@ class NoRedundancyScore(ArgdownMetric):
         score = metrics.ArgdownHandler.no_redundancy(self._cache["parsed_argdown"])
         return score
 
+class ArgumentSizeScore(ArgdownMetric):
+    """scores size of argdown, if valid"""
+
+    def calculate(self):
+        if not self.da2item.argdown_reconstruction:
+            return None
+        parsed_argdown: Argument = self._cache["parsed_argdown"]
+        if not parsed_argdown:
+            return None
+        n_statements = len(parsed_argdown.statements)
+        score = 1.0 - (0.5 ** n_statements)
+        return score
+
+    @property
+    def satisficed(self) -> bool:
+        """are there any statements in parsed argdown?"""    
+        return bool(self.score)
+
+
 class ConclMatchesRecoScore(ArgdownMetric):
     """
     scores whether conclusion matches argdown, i.e.:
@@ -227,7 +278,7 @@ class ConclMatchesRecoScore(ArgdownMetric):
 
     def calculate(self):
         if not self.da2item.conclusion:
-            return 1
+            return None
         score = 0
         if self._cache["parsed_argdown"]:
             score = int(
@@ -251,7 +302,7 @@ class RecoCohSourceScore(ArgdownMetric):
     """
 
     def calculate(self):
-        if not self._inference:
+        if not self._inference or self.da2item.argdown_reconstruction is None:
             return None
         if not self.da2item.source_text or not self._cache["parsed_argdown"]:
             return 0
@@ -329,25 +380,40 @@ class RecoCohSourceScore(ArgdownMetric):
 
 
 class SomeReasonsScore(Metric):
-    """scores whether da2item cointains some `reasons` (returns 1 or 0)"""
+    """scores whether da2item cointains some `reasons` (returns number of reasons)"""
 
     def calculate(self):
-        score = int(bool(self.da2item.reasons))
+        if not self.da2item.reasons:
+            return 0
+        score = len(self.da2item.reasons)
+        score = 1.0 - (0.5**score)
         return score
 
     def critical_angles(self) -> List[str]:
         return ["reasons"]
 
+    @property
+    def satisficed(self) -> bool:
+        """are there any reasons?"""    
+        return bool(self.score)
 
 class SomeConjecturesScore(Metric):
-    """scores whether da2item cointains some `conjectures` (returns 1 or 0)"""
+    """scores whether da2item contains some `conjectures` (returns 1 or 0)"""
 
     def calculate(self):
-        score = int(bool(self.da2item.conjectures))
+        if not self.da2item.conjectures:
+            return 0
+        score = len(self.da2item.conjectures)
+        score = 1.0 - (0.5**score)
         return score
 
     def critical_angles(self) -> List[str]:
         return ["conjectures"]
+
+    @property
+    def satisficed(self) -> bool:
+        """are there any conjectures?"""    
+        return bool(self.score)
 
 
 class ReasonsAlignedScore(ArgdownMetric):
@@ -355,10 +421,10 @@ class ReasonsAlignedScore(ArgdownMetric):
     whether they reference premises"""
 
     def calculate(self):
+        if not self.da2item.reasons or not self.da2item.argdown_reconstruction:
+            return None
         if not self._cache["parsed_argdown"]:
             return 0
-        if not self.da2item.reasons:
-            return 1
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for reason in self.da2item.reasons:
@@ -389,10 +455,10 @@ class ConjecturesAlignedScore(ArgdownMetric):
     whether they reference a final or intermediary conclusion"""
 
     def calculate(self):
+        if not self.da2item.conjectures or not self.da2item.argdown_reconstruction:
+            return None
         if not self._cache["parsed_argdown"]:
             return 0
-        if not self.da2item.conjectures:
-            return 1
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for conjecture in self.da2item.conjectures:
@@ -432,7 +498,7 @@ class ReasConjCohRecoScore(Metric):
             (not self.da2item.reasons and not self.da2item.conjectures) or
             not self.da2item.argdown_reconstruction
         ):
-            return 1
+            return None
 
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
@@ -517,7 +583,7 @@ class CompleteFormalization(ArgdownMetric):
 
     def calculate(self):
         if not self._cache["parsed_argdown"]:
-            return 0
+            return None
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         premises = [s for s in parsed_argdown.statements if not s.is_conclusion]
         conclusion = [parsed_argdown.statements[-1]]
@@ -601,7 +667,7 @@ class WellFormedKeysScore(Metric):
 
     def calculate(self):
         if not self.da2item.plchd_substitutions:
-            return 1
+            return None
         # gather all formalizations
         formalizations = []
         if self.da2item.premises_formalized:
@@ -646,7 +712,7 @@ class FormCohRecoScore(ArgdownMetric):
             not self.da2item.plchd_substitutions or
             not self._cache["parsed_argdown"]
         ):
-            return 1
+            return None
 
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         has_interm_concl = any(s.is_conclusion for s in parsed_argdown.statements[:-1])
@@ -683,14 +749,17 @@ class WellFormedFormScore(FormalizationMetric):
     """scores whether formalizations are well-formed (returns 1 or 0)"""
 
     def calculate(self):
-        for key in [
-            "parsed_p_formalizations",
-            "parsed_ic_formalizations",
-            "parsed_c_formalizations",
-        ]:
-            if self._cache[key]:
-                if None in self._cache[key]:
-                    return 0
+        if self.da2item.premises_formalized:
+            if None in self._cache["parsed_p_formalizations"]:
+                return 0
+        elif self.da2item.conclusion_formalized:
+            if None in self._cache["parsed_c_formalizations"]:
+                return 0
+        elif self.da2item.intermediary_conclusions_formalized:
+            if None in self._cache["parsed_ic_formalizations"]:
+                return 0
+        else:
+            return None
         return 1
 
 
@@ -704,7 +773,7 @@ class GlobalDeductiveValidityScore(FormalizationMetric):
             not premise_formulae or
             not conclusion_formulae
         ):
-            return 0
+            return None
         score = Prover9().prove(conclusion_formulae[0], premise_formulae)
         return int(score)
 
@@ -738,16 +807,20 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
 
     def calculate(self):
         if not self._cache["parsed_argdown"]:
-            return 0
+            return None
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_locally_valid = 0
         for statement in parsed_argdown.statements:
             if statement.is_conclusion and statement.uses:
                 conclusion_formula = self._get_parsed_formula(statement.label)
+                if conclusion_formula is None:
+                    return None
                 if conclusion_formula:
                     premise_formulae = []
                     for label in statement.uses:
                         premise_formula = self._get_parsed_formula(label)
+                        if premise_formula is None:
+                            return None
                         premise_formulae.append(premise_formula)
                     if premise_formulae and None not in premise_formulae:
                         if Prover9().prove(conclusion_formula, premise_formulae):
@@ -784,7 +857,7 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
 
 
 
-class SofaEvaluation:
+class SofaMetrics:
     """class to evaluate a da2item with respect to set of metrics"""
 
     #inference pipeline
@@ -806,6 +879,9 @@ class SofaEvaluation:
         self._metrics_registry = {}
         self._metric_phase = {}
         self._alternative_metrics = {}
+
+        self.register_metric(GlobalCompletenessScore)
+        self.register_metric(ArgumentSizeScore)
 
         self.register_metric(ValidArgdownScore,phase=0)
         self.register_metric(PCStructureScore,phase=0)
@@ -871,8 +947,10 @@ class SofaEvaluation:
         for metric in self._metrics_registry.values():
             metric.update_score(da2item)
 
-    def individual_score(self, metric_name = Metric) -> Optional[Union[float,int]]:
+    def individual_score(self, metric_name = Union[Metric,str]) -> Optional[Union[float,int]]:
         """get individual score of metric by name"""
+        if not isinstance(metric_name, str):
+            metric_name = metric_name.__name__
         metric = self._metrics_registry.get(metric_name)
         if metric:
             return metric.score
@@ -880,12 +958,15 @@ class SofaEvaluation:
             # metric not registered
             return None
 
-    def all_scores(self) -> Dict[str,Optional[Union[float,int]]]:
-        """get scores of all registered metrics as dict"""
+    def all_scores(
+        self, phases: Optional[List[int]] = None
+    ) -> Dict[str,Optional[Union[float,int]]]:
+        """get scores of all registered metrics in phases as dict"""
         scores = {
             key: metric.score
             for key, metric 
             in self._metrics_registry.items()
+            if (not phases or self._metric_phase[key] in phases)
         }
         return scores
 
@@ -912,3 +993,59 @@ class SofaEvaluation:
                         ):
                             return phase
         return len(RECONSTRUCTION_PHASES)-1
+
+    @property
+    def completeness(self) -> float:
+        """
+        scores the completenesss of the current 
+        comprehensive argumentative analysis (da2item)
+        - ratio of non-empty core fields
+        """
+        gcs = self.individual_score(GlobalCompletenessScore)
+        gcs = 0. if gcs is None else gcs
+        return gcs
+
+    @property
+    def correctness(self) -> float:
+        """
+        scores the global completes of the current 
+        comprehensive argumentative analysis
+        - average non-None scores
+        """
+        all_scores = [
+            score for score in 
+            self.all_scores(phases=[0,1,2,3]).values()
+            if score is not None
+        ]
+        if not all_scores:
+            return 0.
+        return sum(all_scores)/len(all_scores)
+
+    @property
+    def depth(self) -> float:
+        """
+        scores the sophistication/depth of the current
+        comprehensive argumentative analysis (da2item)
+        - number of statements in the argument
+        - number of reasons and conjectures
+        """
+        # quotes
+        srs = self.individual_score(SomeReasonsScore)
+        srs = 0 if srs is None else srs
+        scs = self.individual_score(SomeConjecturesScore)
+        scs = 0 if scs is None else scs
+        # argument size
+        ass = self.individual_score(ArgumentSizeScore)
+        ass = 0 if ass is None else ass
+        # alignment
+        ras = self.individual_score(ReasonsAlignedScore) 
+        ras = 0 if ras is None else ras
+        cas = self.individual_score(ConjecturesAlignedScore) 
+        cas = 0 if cas is None else cas
+        # aggregate
+        depth_score: float = (
+            max(srs,scs)
+            + ass
+            + max(ras,cas)
+        )/3.
+        return depth_score

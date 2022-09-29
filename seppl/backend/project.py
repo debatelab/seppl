@@ -2,112 +2,18 @@
 
 from __future__ import annotations
 from copy import deepcopy
-import dataclasses
-import logging
 from typing import Optional, List, Any, Dict
 
-from deepa2 import DeepA2Item
+from seppl.backend.state_of_analysis import StateOfAnalysis
 from seppl.backend.inference import AbstractInferencePipeline
+from seppl.backend.project_store import AbstractProjectStore
 from seppl.backend.userinput import UserInput
-from seppl.backend.inputoption import InputOption
-#import seppl.backend.handler as hdl
 import seppl.backend.handler
 from seppl.backend.handler import (
     Request,
     AbstractUserInputHandler)
-from seppl.backend.da2metric import SofaEvaluation
 
 
-class StateOfAnalysis:
-    """
-    represent a current state of logical analysis
-
-    _user_input: UserInput the user has provided at previous step and
-            that was used to construct this state of analysis
-    _input_options: List[InputOption] available to-be-shown for next
-            user input 
-    global_step: int global step of this sofa in project history
-    resumes_from_step: int global step of earlier sofa where this sofa
-            resumes from (resumes_from_step < global_step)
-    visible_option: int index of option that is currently shown to user
-    da2item: DeepA2Item comprehensive argumentative analysis
-    metrics: Dict[str, Any] metrics corresponding to and evaluating
-            da2item
-    feedback: Optional[str] to be shown, refers to quality of previous
-            user input (_user_input)
-    """
-    _user_input: UserInput
-    _input_options: List[InputOption]
-    global_step: int
-    resumes_from_step: int
-    visible_option: int
-    da2item: DeepA2Item
-    metrics: SofaEvaluation
-    feedback: Optional[str]
-
-    """state of the current analysis"""
-    def __init__(self,
-        project_id = "project-id",
-        source_text: str = None,
-        inference: AbstractInferencePipeline = None,
-        global_step: int = 0,
-        resumes_from_step: int = 0,
-        input_options: List[InputOption] = None,
-    ):
-        self.project_id = project_id
-        self.global_step = global_step
-        self.resumes_from_step = resumes_from_step
-        self.visible_option = 0
-        self.feedback = "That was excellent!"
-        if input_options is None:
-            self._input_options = []
-        else:
-            self._input_options = input_options
-        self.da2item = DeepA2Item(source_text = source_text)
-        self.metrics = SofaEvaluation(inference = inference)
-
-    @property
-    def input_options(self) -> List[InputOption]:
-        """input_options for next step"""
-        return self._input_options
-
-    @input_options.setter
-    def input_options(self, input_options: List[InputOption]) -> None:
-        """sets input options"""
-        self._input_options = input_options
-
-    @property
-    def user_input(self) -> UserInput:
-        """user_input from last step"""
-        return self._user_input
-
-    @user_input.setter
-    def user_input(self, user_input: UserInput) -> None:
-        """sets user input"""
-        self._user_input = user_input
-
-    def create_revision(self,
-        global_step: int,
-        user_input: UserInput,
-        input_options: List[InputOption],
-        metrics: SofaEvaluation,
-        da2item: DeepA2Item,
-        feedback: str = None,
-        **kwargs,
-    ) -> StateOfAnalysis:
-        """
-        creates a revised copy as next sofa
-        """
-        revision: StateOfAnalysis = deepcopy(self)
-        revision.visible_option = 0
-        revision.global_step = global_step
-        revision.resumes_from_step = self.global_step
-        revision.user_input = user_input
-        revision.input_options = input_options
-        revision.feedback = feedback
-        revision.metrics = metrics
-        revision.da2item = da2item
-        return revision
 
 class Project:
     """representation of a reconstruction project"""
@@ -115,16 +21,22 @@ class Project:
     inference: AbstractInferencePipeline
     project_id: str  # unique identifier of this project
     global_step: int  # global counter of sofas in project history
+    project_store: AbstractProjectStore
+    state_of_analysis: StateOfAnalysis # current sofa
 
-    def __init__(self, inference: AbstractInferencePipeline, **kwargs):
+    def __init__(
+        self,
+        inference: AbstractInferencePipeline,
+        project_store: AbstractProjectStore,
+        project_id: str,
+    ):
         self.inference = inference
-        self.project_id = "PROJECT-ID"
-        self.state_of_analysis: StateOfAnalysis = StateOfAnalysis(
-            project_id = self.project_id,
-            inference = inference,
-            **kwargs
-        )
-        self.global_step = 0
+        self.project_id = project_id
+        self.project_store = project_store
+        self.project_store.set_project(self.project_id)
+        self.state_of_analysis = self.project_store.get_last_sofa()        
+        self.global_step = self.project_store.get_length()-1
+
 
         # setup chain of responsibility for handling user queries
         self.handlers: List[AbstractUserInputHandler] = [
@@ -171,6 +83,7 @@ class Project:
             global_step = self.global_step,
         )
         new_sofa = self.handlers[0].handle(request)
-        # TODO: add old sofa to history before updating
+        # write new sofa to store
+        self.project_store.store_sofa(new_sofa)
         # update state of analysis
         self.state_of_analysis = new_sofa

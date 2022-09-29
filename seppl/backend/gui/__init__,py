@@ -1,4 +1,4 @@
 """seppl gui"""
 # pylint: skip-file
 
-from .gui import *
+from .gui import ProjectStRenderer

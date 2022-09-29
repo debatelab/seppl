@@ -6,7 +6,7 @@ import pytest
 from deepa2 import (
     DeepA2Item,
 )
-from seppl.backend.da2metric import SofaEvaluation
+from seppl.backend.da2metric import SofaMetrics
 
 
 
@@ -25,7 +25,7 @@ def fixture_da2_items():
 
 def test_sofaeval_1(da2_items):
     """test first argument"""
-    sofaeval = SofaEvaluation()
+    sofaeval = SofaMetrics()
     sofaeval.update(da2_items[0])
     print(sofaeval.all_scores)
     assert sofaeval.individual_score("ValidArgdownScore")
