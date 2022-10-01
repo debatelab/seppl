@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import logging
 import re
 from typing import List, Any, Dict, Optional
@@ -24,6 +24,13 @@ class InputOption():
     context: Optional[List[Any]] = None
     question: Optional[str] = None
     inference_rater: Optional[InferenceRater] = None
+
+    def as_dict(self) -> Dict[str, Any]:
+        """returns a dict representation of this input option"""
+        data = asdict(self)
+        data["inference_rater"] = None
+        data["class"] = self.__class__.__name__
+        return data
 
 @dataclass
 class ChoiceOption(InputOption):
@@ -131,6 +138,18 @@ class QuoteOption(InputOption):
 
 class OptionFactory():
     """factory class for creating InputOption objects"""
+
+    @staticmethod
+    def from_dict(data: Dict[str,Any]) -> InputOption:
+        """creates InputOption from dict"""
+        option_class = data.pop("class")
+        if option_class == "ChoiceOption":
+            return ChoiceOption(**data)
+        if option_class == "TextOption":
+            return TextOption(**data)
+        if option_class == "QuoteOption":
+            return QuoteOption(**data)
+        raise ValueError(f"OptionFactory: unknown class {data['class']}")
 
     @staticmethod
     def create_text_options(

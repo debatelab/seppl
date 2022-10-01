@@ -7,6 +7,7 @@ import logging
 import json
 import re
 from typing import Optional, Dict, List, Tuple, Any, Union
+from uuid import UUID
 
 from deepa2 import DeepA2Item
 import requests  # type: ignore
@@ -29,12 +30,12 @@ class AbstractProjectStore(ABC):
     """Interface for Project Stores"""
 
     _inference: AbstractInferencePipeline
-    _user_id: Optional[str] = None
+    _user_id: str
     _project_id: Optional[str] = None
 
     def __init__(self,
         inference: AbstractInferencePipeline,
-        user_id: str = None,
+        user_id: str,
         project_id: str = None,
     ):
         self._inference = inference
@@ -63,7 +64,7 @@ class AbstractProjectStore(ABC):
 
     def set_user(self, user_id: str) -> None:
         """sets user with id user_id as current user"""
-        self._user_id = user_id
+        raise NotImplementedError
 
     def set_project(self, project_id: str) -> None:
         """sets project_id"""
@@ -76,11 +77,11 @@ class DummyLocalProjectStore(AbstractProjectStore):
 
     _user_id: str
     _project_id: str
-    _sofa_list: List[StateOfAnalysis]
+    _sofa_list: List[Dict[str,Any]]
 
     def __init__(self,
         inference: AbstractInferencePipeline,
-        user_id: str = None,
+        user_id: str,
         project_id: str = None,
     ):
         super().__init__(
@@ -103,21 +104,28 @@ class DummyLocalProjectStore(AbstractProjectStore):
             self._project_id = "dummy_project"
 
         dummy_sofa = StateOfAnalysis(
+            sofa_id = "12345678-1234-5678-1234-567812345678",
             project_id = self._project_id,
             inference = self._inference,
             da2item = DeepA2Item(source_text=_SOURCE_TEXT),
             input_options = [dummy_option],
         )
 
+        data = dummy_sofa.as_dict()
+
         self._sofa_list = [
-            dummy_sofa,
+            data,
         ]
 
 
 
     def get_sofa(self, idx: int) -> StateOfAnalysis:
         """get_sofa in current project at step idx"""
-        return self._sofa_list[idx]
+        data = self._sofa_list[idx]
+        logging.info("DummyLocalProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
+        sofa = StateOfAnalysis.from_dict(data, self._inference)
+        logging.info("DummyLocalProjectStore: Returning sofa %s at idx %s from store.", sofa.sofa_id, idx)
+        return sofa
 
     def get_last_sofa(self) -> StateOfAnalysis:
         """get last sofa in current project """
@@ -129,12 +137,15 @@ class DummyLocalProjectStore(AbstractProjectStore):
 
     def store_sofa(self, sofa: StateOfAnalysis):
         """stores sofa in current project"""
-        logging.info("DummyLocalProjectStore: Saving sofa %s in store. New size of store: %s.", sofa, self.get_length())
-        self._sofa_list.append(deepcopy(sofa))
+        data = sofa.as_dict()
+        logging.info("DummyLocalProjectStore: Saving sofa %s in store. New size of store: %s.", data, self.get_length())
+        self._sofa_list.append(data)
 
     def list_projects(self) -> List[str]:
         """list all projects of current user"""
+        return [self._project_id]
 
     def get_project(self) -> str:
         """return id of current project project_id """
+        return self._project_id
 

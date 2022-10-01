@@ -174,6 +174,7 @@ class ProjectStRenderer:
     def render(self):
         """renders the project as streamlit gui"""
         st.write(f"RENDERING THE PROJECT ({self._project.project_id})")
+        st.json(self._project.state_of_analysis.as_dict())
         st.write(f"source_text: {self._project.state_of_analysis.da2item.source_text}")
         st.write(f"step: {self._project.state_of_analysis.global_step}")
         st.write(f"resumes from: {self._project.state_of_analysis.resumes_from_step}")
