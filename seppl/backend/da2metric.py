@@ -1049,3 +1049,13 @@ class SofaMetrics:
             + max(ras,cas)
         )/3.
         return depth_score
+
+    def as_dict(self) -> Dict[str, Any]:
+        """return all scores and aggregate metrics as dict"""
+        data = self.all_scores()
+        data["completeness"] = self.completeness
+        data["correctness"] = self.correctness
+        data["depth"] = self.depth
+        data["reconstruction_phase"] = self.reconstruction_phase
+        return data
+    

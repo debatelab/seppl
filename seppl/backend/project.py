@@ -85,5 +85,7 @@ class Project:
         new_sofa = self.handlers[0].handle(request)
         # write new sofa to store
         self.project_store.store_sofa(new_sofa)
+        # write metrics to store
+        self.project_store.store_metrics(new_sofa)
         # update state of analysis
         self.state_of_analysis = new_sofa

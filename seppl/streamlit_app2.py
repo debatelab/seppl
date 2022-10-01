@@ -20,7 +20,6 @@ _PIPELINE = "DA2MosecPipeline"
 _TEXTEGEN_SERVER_URL = "http://kriton.philosophie.kit.edu:8002/inference"
 _LOSS_SERVER_URL = "http://kriton.philosophie.kit.edu:8001/inference"
 
-# TODO: load from database
 
 def check_authentification() -> bool:
     """Returns `True` if the user had the correct password."""
@@ -30,7 +29,7 @@ def check_authentification() -> bool:
         if st.session_state["password"] == st.secrets["password"]:
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # don't store password
-            st.session_state["user_id"] = "user123"
+            st.session_state["user_id"] = "marcantonio-galuppi"
         else:
             st.session_state["password_correct"] = False
 

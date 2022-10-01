@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from copy import deepcopy
 import logging
-import json
-import re
+import os
 from typing import Optional, Dict, List, Tuple, Any, Union
-from uuid import UUID
 
 from deepa2 import DeepA2Item
-import requests  # type: ignore
+from google.cloud import firestore
+import uuid
 
-from seppl.backend.state_of_analysis import StateOfAnalysis
-from seppl.backend.inputoption import ChoiceOption
+from seppl.backend.handler import CUE_FIELDS
 from seppl.backend.inference import AbstractInferencePipeline
+from seppl.backend.inputoption import ChoiceOption, OptionFactory
+from seppl.backend.state_of_analysis import StateOfAnalysis
 
 # DUMMY DATA
 _SOURCE_TEXT = """It is cruel and unethical to kill animals for food
@@ -59,8 +58,29 @@ class AbstractProjectStore(ABC):
         """stores sofa in current project"""
 
     @abstractmethod
+    def store_metrics(self, sofa: StateOfAnalysis):
+        """stores sofa's metric in current project"""
+
+    @abstractmethod
+    def get_metrics(self, sofa_id: str):
+        """gets sofa's metric from current project and user"""
+
+    @abstractmethod
     def list_projects(self) -> List[str]:
         """list all projects of current user"""
+
+    @abstractmethod
+    def get_project(self) -> str:
+        """return id of current project project_id """
+
+    @abstractmethod
+    def get_title(self) -> str:
+        """title of current project"""
+
+    @abstractmethod
+    def get_description(self) -> str:
+        """description of current project"""
+
 
     def set_user(self, user_id: str) -> None:
         """sets user with id user_id as current user"""
@@ -78,6 +98,7 @@ class DummyLocalProjectStore(AbstractProjectStore):
     _user_id: str
     _project_id: str
     _sofa_list: List[Dict[str,Any]]
+    _metrics_list: List[Dict[str,Any]]
 
     def __init__(self,
         inference: AbstractInferencePipeline,
@@ -90,6 +111,11 @@ class DummyLocalProjectStore(AbstractProjectStore):
             project_id=project_id
         )
 
+        input_options = OptionFactory.create_text_options(
+            da2_fields=list(CUE_FIELDS),
+            pre_initialized=False,
+        )
+
         dummy_option = ChoiceOption(
             context = ["(1) P --- (2) C", "(1) Q --- (2) C"],
             question = "Which reco is better A or B?",
@@ -100,6 +126,8 @@ class DummyLocalProjectStore(AbstractProjectStore):
             }
         )
 
+        input_options += [dummy_option]
+
         if self._project_id is None:
             self._project_id = "dummy_project"
 
@@ -108,7 +136,7 @@ class DummyLocalProjectStore(AbstractProjectStore):
             project_id = self._project_id,
             inference = self._inference,
             da2item = DeepA2Item(source_text=_SOURCE_TEXT),
-            input_options = [dummy_option],
+            input_options = input_options,
         )
 
         data = dummy_sofa.as_dict()
@@ -117,14 +145,15 @@ class DummyLocalProjectStore(AbstractProjectStore):
             data,
         ]
 
+        self._metrics_list = []
 
 
     def get_sofa(self, idx: int) -> StateOfAnalysis:
         """get_sofa in current project at step idx"""
         data = self._sofa_list[idx]
-        logging.info("DummyLocalProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
+        logging.debug("DummyLocalProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
         sofa = StateOfAnalysis.from_dict(data, self._inference)
-        logging.info("DummyLocalProjectStore: Returning sofa %s at idx %s from store.", sofa.sofa_id, idx)
+        logging.debug("DummyLocalProjectStore: Returning sofa %s at idx %s from store.", sofa.sofa_id, idx)
         return sofa
 
     def get_last_sofa(self) -> StateOfAnalysis:
@@ -148,4 +177,226 @@ class DummyLocalProjectStore(AbstractProjectStore):
     def get_project(self) -> str:
         """return id of current project project_id """
         return self._project_id
+
+    def get_title(self) -> str:
+        """title of current project"""
+        return "dummy project title"
+
+    def get_description(self) -> str:
+        """description of current project"""
+        return "dummy project description"
+
+    def store_metrics(self, sofa: StateOfAnalysis):
+        """stores sofa's metrics"""
+        assert self._project_id == sofa.project_id
+        if sofa.sofa_id in [m["sofa_id"] for m in self._metrics_list]:
+            logging.warning("DummyLocalProjectStore: Sofa %s already has metrics in store. Storing duplicate metric!", sofa.sofa_id)
+        metrics = sofa.metrics
+        data = metrics.as_dict()
+        data["sofa_id"] = sofa.sofa_id
+        data["project_id"] = sofa.project_id
+        data["user_id"] = self._user_id
+        data["global_step"] = sofa.global_step
+        self._metrics_list.append(data)
+        logging.info("DummyLocalProjectStore: Saving metrics %s in store. New size of metric collection: %s.", data, len(self._metrics_list))
+
+    def get_metrics(self, sofa_id: str):
+        """gets sofa's metrics from current project and user"""
+        for m in self._metrics_list:
+            if (
+                m["sofa_id"] == sofa_id
+                and m["project_id"] == self._project_id
+                and m["user_id"] == self._user_id
+            ):
+                return m
+        return None
+
+
+
+
+class FirestoreProjectStore(AbstractProjectStore):
+    """firestore store"""
+
+    _user_id: str
+    _project_id: str
+    _sofa_list: List[Dict[str,Any]]
+    _metrics_list: List[Dict[str,Any]]
+    db: firestore.Client
+
+    def __init__(self,
+        inference: AbstractInferencePipeline,
+        user_id: str,
+        project_id: str = None,
+    ):
+        super().__init__(
+            inference=inference,
+            user_id=user_id,
+            project_id=project_id
+        )
+
+        # print current directory
+        print("Current directory: ", os.getcwd())
+
+        # Authenticate to Firestore with the JSON account key.
+        self.db = firestore.Client.from_service_account_json("seppl-deepa2-firebase-key.json")
+
+        # Check whether user exists
+        doc_ref = self.db.collection("users").document(self._user_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise ValueError("User with id %s does not exist in firestore." % self._user_id)
+
+        # Sets project
+        if project_id:
+            self.set_project(project_id)
+
+
+    def set_project(self, project_id: str) -> None:
+        """sets project_id"""
+        # check if project exists
+        if project_id is not None:
+            doc_ref = self.db.collection(f"users/{self._user_id}/projects").document(project_id)
+            doc = doc_ref.get()
+            if not doc.exists:
+                raise ValueError("Project with id %s of user %s does not exist in firestore." % project_id, self._user_id)
+
+        self._project_id = project_id
+
+    def create_new_project(self,
+        project_id: str,
+        da2item: DeepA2Item,
+        title: str = None,
+        description: str = None,
+    ) -> None:
+        """creates new project for current user"""
+        # check if project exists
+        project_ref = self.db.collection(f"users/{self._user_id}/projects").document(project_id)
+        doc = project_ref.get()
+        if doc.exists:
+            raise ValueError("Cannot create new project. Project with id %s of user %s exists in firestore." % project_id, self._user_id)
+
+        # assemble data for new project
+        input_options = OptionFactory.create_text_options(
+            da2_fields=list(CUE_FIELDS),
+            pre_initialized=False,
+        )
+        sofa = StateOfAnalysis(
+            sofa_id = str(uuid.uuid4()),
+            project_id = project_id,
+            inference = self._inference,
+            da2item = da2item,
+            input_options = input_options,
+        )
+
+        data = {
+            "title": title,
+            "description": description,
+            "project_id": project_id,
+            "user_id": self._user_id,
+        }
+
+        # Create new project document
+        project_ref.set(data)
+        # Create first sofa in subcollection for sofas
+        sofa_ref = project_ref.collection("sofa_list").document(sofa.sofa_id)
+        sofa_ref.set(sofa.as_dict())
+
+
+    def get_sofa(self, idx: int) -> StateOfAnalysis:
+        """get_sofa in current project at step idx"""
+
+        sofa_list = self.db.collection(f"users/{self._user_id}/projects/{self._project_id}/sofa_list")
+        sofas = sofa_list.where(u'global_step', u'==', idx).stream()
+        sofa = next(sofas, None)
+        if sofa:
+            data = sofa.to_dict()
+            logging.debug("FirestoreProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
+            sofa = StateOfAnalysis.from_dict(data, self._inference)
+            logging.debug("FirestoreProjectStore: Returning sofa %s at idx %s from store.", sofa.sofa_id, idx)
+            return sofa
+        raise ValueError("FirestoreProjectStore: No sofa at idx %s in store." % idx)
+
+    def get_last_sofa(self) -> StateOfAnalysis:
+        """get last sofa in current project """
+        sofa_list = self.db.collection(f"users/{self._user_id}/projects/{self._project_id}/sofa_list")
+        query = sofa_list.order_by(
+            u'global_step', direction=firestore.Query.DESCENDING).limit(1)
+        last_sofa = next(query.stream(), None)
+        if last_sofa:
+            data = last_sofa.to_dict()
+            logging.debug("FirestoreProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
+            sofa = StateOfAnalysis.from_dict(data, self._inference)
+            logging.debug("FirestoreProjectStore: Returning sofa %s from store.", sofa.sofa_id)
+            return sofa
+        raise ValueError("FirestoreProjectStore: Couldn't access last sofa in project %s in store." % self._project_id)
+
+    def get_length(self) -> int:
+        """get number of sofas in current project """
+        return self.get_last_sofa().global_step + 1
+
+    def store_sofa(self, sofa: StateOfAnalysis):
+        """stores sofa in current project"""
+        sofa_list = self.db.collection(f"users/{self._user_id}/projects/{self._project_id}/sofa_list")
+        sofa_ref = sofa_list.document(sofa.sofa_id)
+        data = sofa.as_dict()
+        logging.info("DummyLocalProjectStore: Saving sofa %s in store.", data)
+        sofa_ref.set(data)
+
+    def list_projects(self) -> List[str]:
+        """list all projects of current user"""
+        projects_collection = self.db.collection(f"users/{self._user_id}/projects")
+        projects: List[str] = []
+        for doc in projects_collection.stream():
+            logging.info("FirestoreProjectStore: Found project %s in store.", doc.id)
+            projects.append(doc.id)
+        return projects
+
+    def get_project(self) -> str:
+        """return id of current project project_id """
+        return self._project_id
+
+    def get_title(self) -> str:
+        """title of current project"""
+        pj_coll = self.db.collection(f"users/{self._user_id}/projects")
+        pj_ref = pj_coll.document(self._project_id)
+        pj_doc = pj_ref.get()        
+        return pj_doc.get("title")
+
+    def get_description(self) -> str:
+        """description of current project"""
+        pj_coll = self.db.collection(f"users/{self._user_id}/projects")
+        pj_ref = pj_coll.document(self._project_id)
+        pj_doc = pj_ref.get()        
+        return pj_doc.get("description")
+        
+    def store_metrics(self, sofa: StateOfAnalysis):
+        """stores sofa's metrics"""
+        # sanity checks
+        assert self._project_id == sofa.project_id
+        if sofa.sofa_id in [m["sofa_id"] for m in self._metrics_list]:
+            logging.warning("DummyLocalProjectStore: Sofa %s already has metrics in store. Storing duplicate metric!", sofa.sofa_id)
+        # prepare data
+        metrics = sofa.metrics
+        data = metrics.as_dict()
+        data["sofa_id"] = sofa.sofa_id
+        data["project_id"] = sofa.project_id
+        data["user_id"] = self._user_id
+        data["global_step"] = sofa.global_step
+        # store data
+        metrics_id = "mx_" + sofa.sofa_id
+        metrics_ref = self.db.collection(f"metrics").document(metrics_id)
+        if metrics_ref.get().exists:
+            raise ValueError("FirestoreProjectStore: Cannot store metrics. Metrics with id %s already exist in firestore." % metrics_id)
+        metrics_ref.set(data)
+        logging.debug("DummyLocalProjectStore: Saving metrics %s in store.", data)
+
+    def get_metrics(self, sofa_id: str):
+        """gets sofa's metrics"""
+        metrics_id = "mx_" + sofa_id
+        metrics_ref = self.db.collection("metrics").document(metrics_id)
+        metrics_doc = metrics_ref.get()
+        if not metrics_doc.exists:
+            logging.warning("FirestoreProjectStore: No metrics with id %s in store.", metrics_id)
+            return None
+        return metrics_doc.to_dict()
 
