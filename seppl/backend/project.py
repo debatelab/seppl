@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from copy import deepcopy
+import logging
 from typing import Optional, List, Any, Dict
 
 from seppl.backend.state_of_analysis import StateOfAnalysis
@@ -76,6 +77,11 @@ class Project:
 
     def update(self, query: UserInput):
         """update the project given user input query"""
+        logging.debug(
+            "%s: updating project with query %s",
+            self.__class__.__name__,
+            (query._raw_input,query.da2_field)
+        )
         self.global_step += 1
         request = Request(
             query = query,

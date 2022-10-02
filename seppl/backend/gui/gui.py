@@ -44,6 +44,11 @@ class _InputOptionStRenderer(ABC):
             raw_input,
             self._input_option.da2_field,
         )
+        logging.info(
+            "%s: created query %s",
+            self.__class__.__name__,
+            (raw_input, self._input_option.da2_field)
+        )
         return user_input
 
     @abstractmethod
@@ -69,7 +74,11 @@ class _ChoiceOptionStRenderer(_InputOptionStRenderer):
                 st.button(
                     answer_label,
                     on_click = self._submit,
-                    kwargs = dict(query=self.query(answer))
+                    #kwargs = dict(query=self.query(answer))
+                    kwargs = dict(
+                        query_factory = self.query,
+                        raw_input = answer,
+                    )
                 )
 
 
@@ -98,7 +107,11 @@ class _TextOptionStRenderer(_InputOptionStRenderer):
         st.button(
             "Submit",
             on_click = self._submit,
-            kwargs = dict(query=self.query(text_input))
+            #kwargs = dict(query=self.query(text_input))
+            kwargs = dict(
+                query_factory = self.query,
+                raw_input = text_input,
+            )
         )
     
 
@@ -118,7 +131,7 @@ class _QuoteOptionStRenderer(_InputOptionStRenderer):
         annotation = st.text_area(
             label=self._input_option.question,
             height=200,
-            value=self._input_option.initial_annotation
+            value=self._input_option.initial_annotation,
         )
 
         # TODO: check: if self._input_option.is_annotation(annotation):
@@ -130,7 +143,11 @@ class _QuoteOptionStRenderer(_InputOptionStRenderer):
         st.button(
             "Submit",
             on_click = self._submit,
-            kwargs = dict(query=self.query(annotation))
+            #kwargs = dict(query=self.query(annotation))
+            kwargs = dict(
+                query_factory = self.query,
+                raw_input = annotation,
+            )
         )
     
 
@@ -143,9 +160,14 @@ class ProjectStRenderer:
         self._project: Project = project
         self._query: Optional[UserInput] = None
 
-    def submit(self, query):
+#    def submit(self, query):
+#        """update"""
+#        self._project.update(query)
+
+    def submit(self, query_factory: Callable, raw_input: str):
         """update"""
-        self._project.update(query)
+        self._project.update(query_factory(raw_input))
+
 
     def option_gui_factory(self, option: InputOption) -> _InputOptionStRenderer:
         """creates gui for option"""

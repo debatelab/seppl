@@ -3,6 +3,7 @@
 from __future__ import annotations
 from copy import deepcopy
 import dataclasses
+import datetime
 import logging
 from typing import Optional, List, Any, Dict
 import uuid
@@ -34,6 +35,7 @@ class StateOfAnalysis:
     """
     sofa_id: str
     project_id: str
+    timestamp: str
     _user_input: Optional[UserInput] = None
     _input_options: List[InputOption]
     global_step: int
@@ -48,6 +50,7 @@ class StateOfAnalysis:
     def __init__(self,
         project_id: str,
         inference: AbstractInferencePipeline,
+        timestamp: str = None,
         sofa_id: str = None,
         source_text: str = None,
         global_step: int = 0,
@@ -64,7 +67,10 @@ class StateOfAnalysis:
         else:
             logging.info("StateOfAnalysis.init: creating new sofa id")
             self.sofa_id = str(uuid.uuid4())
-    
+        if timestamp:
+            self.timestamp = timestamp
+        else:
+            self.timestamp = datetime.datetime.now().isoformat()
         self.project_id = project_id
         self.global_step = global_step
         self.resumes_from_step = resumes_from_step
@@ -118,6 +124,7 @@ class StateOfAnalysis:
         """
         revision: StateOfAnalysis = deepcopy(self)
         revision.sofa_id = str(uuid.uuid4())  # new uuid
+        revision.timestamp = datetime.datetime.now().isoformat()  # new timestamp
         revision.visible_option = 0
         revision.global_step = global_step
         revision.resumes_from_step = self.global_step
@@ -141,20 +148,34 @@ class StateOfAnalysis:
         input_options_d: List[Dict[str,Any]] = []
         for option in self.input_options:
             input_options_d.append(option.as_dict())
+        # create da2item data (remove empty values)
+        da2item_d = {
+            k: v for k,v
+            in dataclasses.asdict(self.da2item).items()
+            if bool(v)
+        }
         return {
             "sofa_id": self.sofa_id,
+            "timestamp": self.timestamp,
             "project_id": self.project_id,
             "global_step": self.global_step,
             "resumes_from_step": self.resumes_from_step,
             "feedback": self.feedback,
             "user_input": user_input_d,
             "input_options": input_options_d,
-            "da2item": dataclasses.asdict(self.da2item),
+            "da2item": da2item_d,
         }
 
     @staticmethod
     def from_dict(data: Dict[str,Any], inference: AbstractInferencePipeline) -> StateOfAnalysis:
         """creates a sofa from a dict representation"""
+        # create da2item
+        #da2item_data = dataclasses.asdict(DeepA2Item())
+        #da2item_data.update(data["da2item"])
+        #da2item = DeepA2Item(**da2item_data)
+        da2item = DeepA2Item.from_batch(
+            {k:[v] for k,v in data["da2item"].items()},
+        )
         # create user input
         user_input: Optional[UserInput] = None
         if data["user_input"]:
@@ -169,6 +190,7 @@ class StateOfAnalysis:
         # create sofa
         sofa = StateOfAnalysis(
             project_id = data["project_id"],
+            timestamp = data["timestamp"],
             inference = inference,
             sofa_id = data["sofa_id"],
             global_step = data["global_step"],
@@ -176,6 +198,6 @@ class StateOfAnalysis:
             feedback = data["feedback"],
             user_input = user_input,
             input_options = input_options,
-            da2item = DeepA2Item(**data["da2item"]),
+            da2item = da2item,
         )
         return sofa

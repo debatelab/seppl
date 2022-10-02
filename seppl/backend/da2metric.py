@@ -198,15 +198,18 @@ class ArgdownMetric(Metric):
         """update cache with newly provided da2item"""
         cached_items = cached_items_updated
         reparse = False
-        if "parsed_argdown" not in cached_items:
+        if ("parsed_argdown" not in cached_items):
             if not "parsed_argdown" in self._cache or not self.da2item:
                 reparse = True
             elif self.da2item.argdown_reconstruction != da2item.argdown_reconstruction:
                 reparse = True
         if reparse:
-            self._cache["parsed_argdown"] = DeepA2Parser.parse_argdown(
-                da2item.argdown_reconstruction
-            )
+            if da2item.argdown_reconstruction is None:
+                self._cache["parsed_argdown"] = None
+            else:
+                self._cache["parsed_argdown"] = DeepA2Parser.parse_argdown(
+                    da2item.argdown_reconstruction
+                )
             cached_items = cached_items + ["parsed_argdown"]
 
         return cached_items
@@ -1057,5 +1060,10 @@ class SofaMetrics:
         data["correctness"] = self.correctness
         data["depth"] = self.depth
         data["reconstruction_phase"] = self.reconstruction_phase
+        # remove None values
+        data = {
+            key: value for key, value in data.items()
+            if value is not None
+        }
         return data
     

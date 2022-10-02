@@ -7,7 +7,7 @@ import streamlit as st
 from seppl.backend.project import Project
 from seppl.backend.gui.gui import ProjectStRenderer
 from seppl.backend.inference import AbstractInferencePipeline, inference_factory
-from seppl.backend.project_store import AbstractProjectStore, DummyLocalProjectStore
+from seppl.backend.project_store import AbstractProjectStore, FirestoreProjectStore
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -72,22 +72,30 @@ def main():
         user_id = st.session_state.user_id
 
         # initialize inference pipeline
-        inference = inference_factory(
-            pipeline_id = _PIPELINE,
-            textgen_server_url = _TEXTEGEN_SERVER_URL,
-            loss_server_url = _LOSS_SERVER_URL,
-        )
+        if not "inference" in st.session_state:
+            st.session_state["inference"] = inference_factory(
+                pipeline_id = _PIPELINE,
+                textgen_server_url = _TEXTEGEN_SERVER_URL,
+                loss_server_url = _LOSS_SERVER_URL,
+            )
+        inference = st.session_state["inference"]
 
         # initialize project_store
-        project_store = DummyLocalProjectStore(
-            inference=inference,
-            user_id=user_id,
-        )
+        if not "project_store" in st.session_state:
+            st.session_state["project_store"] = FirestoreProjectStore(
+                inference=inference,
+                user_id=user_id,
+            )
+        project_store: AbstractProjectStore = st.session_state["project_store"]
+
+        # initialize project_list
+        if not "project_list" in st.session_state:
+            st.session_state["project_list"] = project_store.list_projects()
 
         # select project
         st.selectbox(
             label="Select project",
-            options=[""]+project_store.list_projects(),
+            options=[""]+st.session_state["project_list"],
             key="project_id",
             on_change=load_project,
             kwargs=dict(

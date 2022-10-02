@@ -268,7 +268,7 @@ class FirestoreProjectStore(AbstractProjectStore):
         title: str = None,
         description: str = None,
     ) -> None:
-        """creates new project for current user"""
+        """creates new project for current user, set current project accordingly"""
         # check if project exists
         project_ref = self.db.collection(f"users/{self._user_id}/projects").document(project_id)
         doc = project_ref.get()
@@ -276,6 +276,7 @@ class FirestoreProjectStore(AbstractProjectStore):
             raise ValueError("Cannot create new project. Project with id %s of user %s exists in firestore." % project_id, self._user_id)
 
         # assemble data for new project
+        source_text = da2item.source_text
         input_options = OptionFactory.create_text_options(
             da2_fields=list(CUE_FIELDS),
             pre_initialized=False,
@@ -287,20 +288,36 @@ class FirestoreProjectStore(AbstractProjectStore):
             da2item = da2item,
             input_options = input_options,
         )
+        #sofa_data = sofa.as_dict()
+        ## don't store source text in sofa(s), but in project once
+        #sofa_data["da2item"] = {
+        #    k:v for k,v in sofa_data["da2item"].items()
+        #    if k != "source_text"
+        #}
 
         data = {
             "title": title,
             "description": description,
             "project_id": project_id,
             "user_id": self._user_id,
+            "source_text": source_text,
         }
 
         # Create new project document
         project_ref.set(data)
-        # Create first sofa in subcollection for sofas
-        sofa_ref = project_ref.collection("sofa_list").document(sofa.sofa_id)
-        sofa_ref.set(sofa.as_dict())
 
+        # Create first sofa in subcollection for sofas
+        self.set_project(project_id)
+        self.store_sofa(sofa)
+        #sofa_ref = project_ref.collection("sofa_list").document(sofa.sofa_id)
+        #sofa_ref.set(sofa_data)
+
+    @property
+    def source_text(self) -> str:
+        """source text of current project"""
+        doc_ref = self.db.collection(f"users/{self._user_id}/projects").document(self._project_id)
+        doc = doc_ref.get()
+        return doc.get("source_text")
 
     def get_sofa(self, idx: int) -> StateOfAnalysis:
         """get_sofa in current project at step idx"""
@@ -310,6 +327,7 @@ class FirestoreProjectStore(AbstractProjectStore):
         sofa = next(sofas, None)
         if sofa:
             data = sofa.to_dict()
+            data["da2item"]["source_text"] = self.source_text
             logging.debug("FirestoreProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
             sofa = StateOfAnalysis.from_dict(data, self._inference)
             logging.debug("FirestoreProjectStore: Returning sofa %s at idx %s from store.", sofa.sofa_id, idx)
@@ -324,6 +342,7 @@ class FirestoreProjectStore(AbstractProjectStore):
         last_sofa = next(query.stream(), None)
         if last_sofa:
             data = last_sofa.to_dict()
+            data["da2item"]["source_text"] = self.source_text
             logging.debug("FirestoreProjectStore: Fetching sofa data with id %s from store.", data.get("sofa_id"))
             sofa = StateOfAnalysis.from_dict(data, self._inference)
             logging.debug("FirestoreProjectStore: Returning sofa %s from store.", sofa.sofa_id)
@@ -339,7 +358,12 @@ class FirestoreProjectStore(AbstractProjectStore):
         sofa_list = self.db.collection(f"users/{self._user_id}/projects/{self._project_id}/sofa_list")
         sofa_ref = sofa_list.document(sofa.sofa_id)
         data = sofa.as_dict()
-        logging.info("DummyLocalProjectStore: Saving sofa %s in store.", data)
+        # don't store source text in sofa(s), but in project once
+        data["da2item"] = {
+            k:v for k,v in data["da2item"].items()
+            if k != "source_text"
+        }
+        logging.info("FirestoreProjectStore: Saving sofa %s in store.", data)
         sofa_ref.set(data)
 
     def list_projects(self) -> List[str]:
@@ -373,12 +397,11 @@ class FirestoreProjectStore(AbstractProjectStore):
         """stores sofa's metrics"""
         # sanity checks
         assert self._project_id == sofa.project_id
-        if sofa.sofa_id in [m["sofa_id"] for m in self._metrics_list]:
-            logging.warning("DummyLocalProjectStore: Sofa %s already has metrics in store. Storing duplicate metric!", sofa.sofa_id)
         # prepare data
         metrics = sofa.metrics
         data = metrics.as_dict()
         data["sofa_id"] = sofa.sofa_id
+        data["timestamp"] = sofa.timestamp
         data["project_id"] = sofa.project_id
         data["user_id"] = self._user_id
         data["global_step"] = sofa.global_step
@@ -388,7 +411,7 @@ class FirestoreProjectStore(AbstractProjectStore):
         if metrics_ref.get().exists:
             raise ValueError("FirestoreProjectStore: Cannot store metrics. Metrics with id %s already exist in firestore." % metrics_id)
         metrics_ref.set(data)
-        logging.debug("DummyLocalProjectStore: Saving metrics %s in store.", data)
+        logging.debug("FirestoreProjectStore: Saving metrics %s in store.", data)
 
     def get_metrics(self, sofa_id: str):
         """gets sofa's metrics"""
