@@ -45,10 +45,10 @@ project_store = FirestoreProjectStore(
 # %%
 
 project_store.create_new_project(
-    project_id="test_project1",
+    project_id="test_project2",
     da2item=da2item,
-    title="Title 1",
-    description="Description 1",
+    title="Title 2",
+    description="Description 2",
 )
 
 # %%

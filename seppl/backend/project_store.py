@@ -234,9 +234,6 @@ class FirestoreProjectStore(AbstractProjectStore):
             project_id=project_id
         )
 
-        # print current directory
-        print("Current directory: ", os.getcwd())
-
         # Authenticate to Firestore with the JSON account key.
         self.db = firestore.Client.from_service_account_json("seppl-deepa2-firebase-key.json")
 
