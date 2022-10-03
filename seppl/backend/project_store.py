@@ -219,8 +219,6 @@ class FirestoreProjectStore(AbstractProjectStore):
 
     _user_id: str
     _project_id: str
-    _sofa_list: List[Dict[str,Any]]
-    _metrics_list: List[Dict[str,Any]]
     db: firestore.Client
 
     def __init__(self,
@@ -419,4 +417,12 @@ class FirestoreProjectStore(AbstractProjectStore):
             logging.warning("FirestoreProjectStore: No metrics with id %s in store.", metrics_id)
             return None
         return metrics_doc.to_dict()
+
+    def get_agg_metrics(self) -> Dict[str, Any]:
+        """get aggregate metrics for current user"""
+        metrics_user = self.db.collection("metrics").where(u'user_id', u'==', self._user_id).stream()
+        count_mx = 0
+        for mx in metrics_user:
+            count_mx += 1
+        return {"count_metrics": count_mx}
 

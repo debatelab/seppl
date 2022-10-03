@@ -24,6 +24,7 @@ class Project:
     global_step: int  # global counter of sofas in project history
     project_store: AbstractProjectStore
     state_of_analysis: StateOfAnalysis # current sofa
+    metrics_data: Optional[Dict[str, Any]] = None # metrics data for current sofa
 
     def __init__(
         self,
@@ -35,7 +36,10 @@ class Project:
         self.project_id = project_id
         self.project_store = project_store
         self.project_store.set_project(self.project_id)
-        self.state_of_analysis = self.project_store.get_last_sofa()        
+        self.state_of_analysis = self.project_store.get_last_sofa()
+        self.metrics_data = self.project_store.get_metrics(
+            self.state_of_analysis.sofa_id
+        )
         self.global_step = self.project_store.get_length()-1
 
 
@@ -89,9 +93,16 @@ class Project:
             global_step = self.global_step,
         )
         new_sofa = self.handlers[0].handle(request)
-        # write new sofa to store
-        self.project_store.store_sofa(new_sofa)
-        # write metrics to store
-        self.project_store.store_metrics(new_sofa)
-        # update state of analysis
-        self.state_of_analysis = new_sofa
+
+        # check if sofa has changed at all
+        if not new_sofa == self.state_of_analysis:
+            # write new sofa to store
+            self.project_store.store_sofa(new_sofa)
+            # write metrics to store
+            self.project_store.store_metrics(new_sofa)
+            # update state of analysis
+            self.state_of_analysis = new_sofa
+            # update metrics data
+            self.metrics_data = self.project_store.get_metrics(
+                new_sofa.sofa_id
+            )

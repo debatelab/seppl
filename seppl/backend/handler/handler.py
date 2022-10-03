@@ -13,7 +13,7 @@ from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
 from seppl.backend.state_of_analysis import StateOfAnalysis
 from seppl.backend.userinput import UserInput
-from seppl.backend.da2metric import SofaMetrics
+from seppl.backend.da2metric import SofaEvaluator
 from seppl.backend.inputoption import InputOption
 
 CUE_FIELDS = (
@@ -36,18 +36,18 @@ class Request:
     query: UserInput
     state_of_analysis: StateOfAnalysis
     global_step: int
-    _metrics: Optional[SofaMetrics] = None # will be created by first handler
+    _metrics: Optional[SofaEvaluator] = None # will be created by first handler
     new_da2item: DeepA2Item = None  # will be set by first handler
 
     @property
-    def metrics(self) -> SofaMetrics:
+    def metrics(self) -> SofaEvaluator:
         """metrics of current state of analysis"""
         if self._metrics is None:
             raise ValueError("Fatal Error: SOFA metrics accessed before calculated")
         return self._metrics
 
     @metrics.setter
-    def metrics(self, metrics: SofaMetrics) -> None:
+    def metrics(self, metrics: SofaEvaluator) -> None:
         """sets input options"""
         self._metrics = metrics
 
@@ -94,7 +94,7 @@ class AbstractUserInputHandler(Handler):
 
     @abstractmethod
     def is_responsible(self, request: Request) -> bool:
-        """checks if this hnadler is responsible for the given request"""
+        """checks if this haadler is responsible for the given request"""
 
     @abstractmethod
     def get_feedback(
@@ -123,6 +123,11 @@ class AbstractUserInputHandler(Handler):
             user_input.update_da2item(new_da2item)
             request.new_da2item = new_da2item
             logging.info("  updated da2item: %s", new_da2item)
+
+        # return old sofa if no change
+        if old_sofa.da2item == request.new_da2item:
+            logging.info("  no change in da2item, returning old sofa")
+            return old_sofa
 
         # evaluate revised analysis and update metrics
         if not request.has_metrics():

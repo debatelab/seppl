@@ -92,8 +92,20 @@ def main():
         if not "project_list" in st.session_state:
             st.session_state["project_list"] = project_store.list_projects()
 
+
+        st.set_page_config(
+            page_title="Seppl",
+            page_icon="🤹",
+            layout="wide",
+        )
+
+        # TODO: draw sidebar in extra gui class
+        # Sidebar
+        coins = project_store.get_agg_metrics()["count_metrics"]
+        st.sidebar.write(f"{user_id} | {coins} 💰")
+
         # select project
-        st.selectbox(
+        st.sidebar.selectbox(
             label="Select project",
             options=[""]+st.session_state["project_list"],
             key="project_id",

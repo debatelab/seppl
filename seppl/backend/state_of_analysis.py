@@ -12,7 +12,7 @@ from deepa2 import DeepA2Item
 from seppl.backend.inference import AbstractInferencePipeline
 from seppl.backend.userinput import UserInput
 from seppl.backend.inputoption import InputOption, OptionFactory
-from seppl.backend.da2metric import SofaMetrics
+from seppl.backend.da2metric import SofaEvaluator
 
 
 class StateOfAnalysis:
@@ -42,7 +42,7 @@ class StateOfAnalysis:
     resumes_from_step: int
     visible_option: int
     da2item: DeepA2Item
-    metrics: SofaMetrics
+    metrics: SofaEvaluator
     feedback: Optional[str]
 
 
@@ -59,7 +59,7 @@ class StateOfAnalysis:
         feedback: str = None,
         input_options: List[InputOption] = None,
         da2item: DeepA2Item = None,
-        metrics: SofaMetrics = None,
+        metrics: SofaEvaluator = None,
     ):
         # unique id of this sofa
         if sofa_id:
@@ -86,7 +86,7 @@ class StateOfAnalysis:
         else:
             self.da2item = da2item
         if metrics is None:
-            self.metrics = SofaMetrics(inference = inference)
+            self.metrics = SofaEvaluator(inference = inference)
         else:
             self.metrics = metrics
 
@@ -114,7 +114,7 @@ class StateOfAnalysis:
         global_step: int,
         user_input: UserInput,
         input_options: List[InputOption],
-        metrics: SofaMetrics,
+        metrics: SofaEvaluator,
         da2item: DeepA2Item,
         feedback: str = None,
         **kwargs,
@@ -154,6 +154,14 @@ class StateOfAnalysis:
             in dataclasses.asdict(self.da2item).items()
             if bool(v)
         }
+        # transform plchd_substitutions tuples into lists
+        if "plchd_substitutions" in da2item_d:
+            if da2item_d["plchd_substitutions"]:
+                plchd_substitutions = [
+                    {"plc":plc, "subst":subst} for plc, subst
+                    in da2item_d["plchd_substitutions"]
+                ]
+                da2item_d["plchd_substitutions"] = plchd_substitutions
         return {
             "sofa_id": self.sofa_id,
             "timestamp": self.timestamp,
@@ -169,12 +177,19 @@ class StateOfAnalysis:
     @staticmethod
     def from_dict(data: Dict[str,Any], inference: AbstractInferencePipeline) -> StateOfAnalysis:
         """creates a sofa from a dict representation"""
+        da2item_d = deepcopy(data["da2item"])
+        # transform plchd_substitutions lists into tuples
+
+        if "plchd_substitutions" in da2item_d:
+            if da2item_d["plchd_substitutions"]:
+                plchd_substitutions = [
+                    (ps_dict["plc"], ps_dict["subst"]) for ps_dict
+                    in da2item_d["plchd_substitutions"]
+                ]
+                da2item_d["plchd_substitutions"] = plchd_substitutions
         # create da2item
-        #da2item_data = dataclasses.asdict(DeepA2Item())
-        #da2item_data.update(data["da2item"])
-        #da2item = DeepA2Item(**da2item_data)
         da2item = DeepA2Item.from_batch(
-            {k:[v] for k,v in data["da2item"].items()},
+            {k:[v] for k,v in da2item_d.items()},
         )
         # create user input
         user_input: Optional[UserInput] = None

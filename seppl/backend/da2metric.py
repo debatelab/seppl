@@ -263,7 +263,7 @@ class ArgumentSizeScore(ArgdownMetric):
         if not parsed_argdown:
             return None
         n_statements = len(parsed_argdown.statements)
-        score = 1.0 - (0.5 ** n_statements)
+        score = 1.0 - (0.9 ** n_statements)
         return score
 
     @property
@@ -389,7 +389,7 @@ class SomeReasonsScore(Metric):
         if not self.da2item.reasons:
             return 0
         score = len(self.da2item.reasons)
-        score = 1.0 - (0.5**score)
+        score = 1.0 - (0.9**score)
         return score
 
     def critical_angles(self) -> List[str]:
@@ -407,7 +407,7 @@ class SomeConjecturesScore(Metric):
         if not self.da2item.conjectures:
             return 0
         score = len(self.da2item.conjectures)
-        score = 1.0 - (0.5**score)
+        score = 1.0 - (0.9**score)
         return score
 
     def critical_angles(self) -> List[str]:
@@ -860,7 +860,7 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
 
 
 
-class SofaMetrics:
+class SofaEvaluator:
     """class to evaluate a da2item with respect to set of metrics"""
 
     #inference pipeline

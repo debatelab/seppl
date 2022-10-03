@@ -200,19 +200,13 @@ class ProjectStRenderer:
         st.write(f"source_text: {self._project.state_of_analysis.da2item.source_text}")
         st.write(f"step: {self._project.state_of_analysis.global_step}")
         st.write(f"resumes from: {self._project.state_of_analysis.resumes_from_step}")
-        if self._project.state_of_analysis.metrics:
-            metric_data = [
-                {"name": key, "score": value}
-                for key, value 
-                in self._project.state_of_analysis.metrics.all_scores().items()
-            ]
-            st.table(data=metric_data)
-            st.write(
+        if self._project.metrics_data:
+            st.json(self._project.metrics_data)
+            st.json(
                 {
-                    "phase": self._project.state_of_analysis.metrics.reconstruction_phase,
-                    "completeness": self._project.state_of_analysis.metrics.completeness,
-                    "correctness": self._project.state_of_analysis.metrics.correctness,
-                    "depth": self._project.state_of_analysis.metrics.depth,
+                    key: value for key, value in
+                    self._project.metrics_data.items()
+                    if key in ["reconstruction_phase", "completeness", "correctness", "depth"]
                 }
             )
         
