@@ -1,19 +1,22 @@
 """SEPPL streamlit app"""
 
 import logging
+from typing import Optional
 
 import streamlit as st
 
 from seppl.backend.project import Project
-from seppl.backend.gui.gui import ProjectStRenderer
+from seppl.backend.gui import ProjectStRenderer, SidebarRenderer
 from seppl.backend.inference import AbstractInferencePipeline, inference_factory
 from seppl.backend.project_store import AbstractProjectStore, FirestoreProjectStore
+import seppl.backend.session_state_keys as stsk
 
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(message)s',
     datefmt='%m/%d/%Y %I:%M:%S %p'
 )
+
 
 # TODO: load this from config.yaml
 _PIPELINE = "DA2MosecPipeline"
@@ -35,40 +38,53 @@ def check_authentification() -> bool:
 
     if "password_correct" not in st.session_state:
         # First run, show input for password.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
+        _, col, _ = st.columns([1,2,1])
+        with col:
+            st.text_input(
+                "Password", type="password", on_change=password_entered, key="password"
+            )
         return False
     elif not st.session_state["password_correct"]:
         # Password not correct, show input + error.
-        st.text_input(
-            "Password", type="password", on_change=password_entered, key="password"
-        )
-        st.error("😕 Password incorrect")
+        _, col, _ = st.columns([1,2,1])
+        with col:
+            st.text_input(
+                "Password", type="password", on_change=password_entered, key="password"
+            )
+            st.error("😕 Password incorrect")
         return False
     else:
         # Password correct.
         return True
 
 
-def load_project(
-    inference: AbstractInferencePipeline,
-    project_store: AbstractProjectStore,
-) -> None:
+def load_project() -> None:
     """initialize reconstruction project"""
-    if st.session_state.project_id:
-        st.session_state["project"] = Project(
-            inference = inference,
-            project_store = project_store,
-            project_id = st.session_state.project_id,
-        )
-
+    if stsk.PROJECT_ID in st.session_state:
+        inference = st.session_state["inference"]
+        project_store: AbstractProjectStore = st.session_state["project_store"]
+        project_id = st.session_state[stsk.PROJECT_ID]
+        if project_id:
+            st.session_state["project"] = Project(
+                inference = inference,
+                project_store = project_store,
+                project_id = project_id,
+            )
+        else:
+            st.session_state["project"] = None
 
 def main():
     """main script"""
 
+    st.set_page_config(
+        page_title="seppl (AI argument analysis tutor)",
+        page_icon="🤹",
+        layout="wide",
+    )
+
     if check_authentification():
 
+        # user id (TODO: set in authentification method)
         user_id = st.session_state.user_id
 
         # initialize inference pipeline
@@ -92,34 +108,25 @@ def main():
         if not "project_list" in st.session_state:
             st.session_state["project_list"] = project_store.list_projects()
 
-
-        st.set_page_config(
-            page_title="Seppl",
-            page_icon="🤹",
-            layout="wide",
-        )
-
-        # TODO: draw sidebar in extra gui class
-        # Sidebar
-        coins = project_store.get_agg_metrics()["count_metrics"]
-        st.sidebar.write(f"{user_id} | {coins} 💰")
-
-        # select project
-        st.sidebar.selectbox(
-            label="Select project",
-            options=[""]+st.session_state["project_list"],
-            key="project_id",
-            on_change=load_project,
-            kwargs=dict(
-                inference=inference,
-                project_store=project_store,
-            ),
-        )
-
+        # get reference to project if already initialized
+        project = None
         if "project" in st.session_state:
-            # visualize state of project
-            gui = ProjectStRenderer(st.session_state.project)
-            gui.render()
+            project = st.session_state.project
+
+        # initialize and render sidebar
+        sidebar_gui = SidebarRenderer(
+            user_id=user_id,
+            project_list = st.session_state["project_list"],
+            project_loader = load_project,
+        )
+        sidebar_gui.render(
+            project = project,
+            agg_metrics = project_store.get_user_metrics()
+        )
+
+        # visualize state of project in main gui
+        main_gui = ProjectStRenderer(project)
+        main_gui.render()
 
 
 if __name__ == '__main__':

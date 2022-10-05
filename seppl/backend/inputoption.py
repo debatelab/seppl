@@ -5,6 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass, asdict
 import logging
 import re
+import textwrap
 from typing import List, Any, Dict, Optional
 
 from deepa2 import DeepA2Item, DeepA2Layouter, QuotedStatement
@@ -31,6 +32,20 @@ class InputOption():
         data["inference_rater"] = None
         data["class"] = self.__class__.__name__
         return data
+
+    @staticmethod
+    def wrap_argdown(argdown: str) -> str:
+        """wraps argdown text, preserving linebreaks"""
+        # split lines
+        argdown_lines = argdown.split("\n")
+        # wrap each line
+        argdown_lines = [
+            "  \n".join(textwrap.wrap(line, width=60))
+            for line in argdown_lines
+        ]
+        # join lines
+        argdown = "\n".join(argdown_lines)
+        return argdown
 
 @dataclass
 class ChoiceOption(InputOption):
@@ -85,13 +100,20 @@ class QuoteOption(InputOption):
         """checks whether annotation is valid annotation of source_text"""
         if self.source_text is None:
             return False
+        # retrieve source text by stripping annotation
+        retrieved_text = ""
         matches = re.finditer(self._REGEX_QUOTE, annotation, re.MULTILINE)
         pointer = 0 # pointer to current position in source_text
         for match in matches:
-            if not match.group(1) in self.source_text[pointer:]:
+            if not match.group(1) in self.source_text:
                 return False
-            pointer = self.source_text.index(match.group(1), pointer) + len(match.group(1))
-        return True
+            retrieved_text += annotation[pointer:match.start()]
+            retrieved_text += match.group(1)
+            pointer = match.end()
+            #pointer = self.source_text.index(match.group(1), pointer) + len(match.group(1))
+        retrieved_text += annotation[pointer:]
+        print(retrieved_text)
+        return retrieved_text == self.source_text
 
     @staticmethod
     def quotes_as_annotation(
@@ -109,8 +131,10 @@ class QuoteOption(InputOption):
                     annotation += source_text[pointer:start_idx]
                     annotation += f"[{quote.text}]({quote.ref_reco})"
                     pointer = start_idx+len(quote.text)
+                else:
+                    logging.warning("QuoteOption: ignoring faulty quote %s", quote.text)
             else:
-                logging.warning("QuoteOption: ignoring faulty quote %s", quote.text)
+                logging.warning("QuoteOption: ignoring empty quote.")
         annotation += source_text[pointer:]
         return annotation
 
@@ -163,6 +187,9 @@ class OptionFactory():
         pre-initialized with da2item values
         """
         formatted_da2item = DeepA2Layouter().format(da2_item) if da2_item else None
+        # re-format conclusion, which is used as cues (text only)
+        if formatted_da2item and da2_item:
+            formatted_da2item["conclusion"] = da2_item.conclusion[0].text
         input_options: List[InputOption] = []
         if da2_fields:
             for da2_field in da2_fields:

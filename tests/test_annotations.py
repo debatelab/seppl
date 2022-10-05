@@ -59,3 +59,29 @@ def test_annotations_2(annotations,quoteslist,sources):
 
         assert QuoteOption.quotes_as_annotation(source_text,quotes) == annotation
 
+def test_annotations_3():
+    """test annotations check"""
+    source = """It is cruel and unethical to kill animals for food
+when vegetarian options are available, especially because raising animals
+in confinement for slaughter is cruel, and many animals in the United
+States are not slaughtered humanely. Animals are sentient beings that
+have emotions and social connections. Scientific studies show that cattle,
+pigs, chickens, and all warm-blooded animals can experience stress, pain,
+and fear."""
+    annotation1 = """It is cruel and unethical to kill animals for food
+when vegetarian options are available, especially because [raising animals
+in confinement for slaughter is cruel, and many animals in the United
+States are not slaughtered humanely](2). [Animals are sentient beings that
+have emotions and social connections.[(1) Scientific studies show that cattle,
+pigs, chickens, and all warm-blooded animals can experience stress, pain,
+and fear."""
+    annotation2 = """It is cruel and unethical to kill animals for food
+when vegetarian options are available, especially because [raising animals
+in confinement for slaughter is cruel, and many animals in the United
+States are not slaughtered humanely](2). [Animals are sentient beings that
+have emotions and social connections.](1) Scientific studies show that cattle,
+pigs, chickens, and all warm-blooded animals can experience stress, pain,
+and fear."""
+    qoption = QuoteOption(da2_field="reasons", source_text=source)
+    assert not qoption.is_annotation(annotation1)
+    assert qoption.is_annotation(annotation2)

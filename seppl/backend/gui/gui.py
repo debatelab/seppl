@@ -1,156 +1,102 @@
 """module for rendering projects and its components in streamlit"""
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Dict, List
 import streamlit as st
+from seppl.backend.gui.sofa_renderer import SofaStRenderer
+
+from seppl.backend.gui.option_renderer import InputOptionStRenderer
 
 from seppl.backend.project import Project
-from seppl.backend.userinput import UserInput, INPUT_TYPES
-from seppl.backend.inputoption import (
-    ChoiceOption,
-    InputOption,
-    TextOption,
-    QuoteOption,
-)
+from seppl.backend.userinput import UserInput
+import seppl.backend.session_state_keys as stsk
 
 
-class _InputOptionStRenderer(ABC):
-    """
-    abstract class
-    renders input option in streamlit
-    """
 
-    _input: Any = None
-    _input_option: InputOption
-    _submit: Optional[Callable] # reference to project renderer's submit method
+class SidebarRenderer:
+    """renders the sidebar"""
 
-    def __init__(self,
-        submit: Callable,
-        input_option: InputOption,
+    def __init__(
+        self,
+        user_id: str,
+        project_list: List[str],
+        project_loader: Callable,
     ):
-        self._submit = submit
-        self._input_option = input_option
+        self.user_id = user_id
+        self.project_list = project_list
+        self.project_loader = project_loader
 
-    #@property
-    #def input(self):
-    #    """returns currently selcted / provided input"""
-    #    return self._input
+    def load_sofa(self, project: Project):
+        """call project.load_sofa()"""
+        if stsk.GLOBAL_STEP in st.session_state:
+            project.load_sofa(st.session_state[stsk.GLOBAL_STEP])
 
-    def query(self, raw_input: str) -> UserInput:
-        """constructs and returns user_input to-be passed to submit function"""
-        user_input = INPUT_TYPES[self._input_option.da2_field](
-            raw_input,
-            self._input_option.da2_field,
+    def render(
+        self,
+        project: Optional[Project] = None,
+        agg_metrics: Optional[Dict] = None,
+    ):
+        """renders the sidebar"""
+        first_line = f"{self.user_id}"
+        if agg_metrics:
+            candies = agg_metrics["count_metrics"]
+            first_line += f" | {candies} 🍬"
+        st.sidebar.write(first_line)
+
+        # select project
+        st.sidebar.selectbox(
+            label="Project",
+            options=[""]+self.project_list,
+            key=stsk.PROJECT_ID,
+            on_change=self.project_loader,
         )
-        logging.info(
-            "%s: created query %s",
-            self.__class__.__name__,
-            (raw_input, self._input_option.da2_field)
-        )
-        return user_input
 
-    @abstractmethod
-    def render(self):
-        """renders the input option as streamlit gui"""
+        if project:
+            # display project info
+            if project.title:
+                st.sidebar.subheader(project.title)
+            if project.description:
+                st.sidebar.caption(project.description)
 
+            # select sofa
+            st.sidebar.selectbox(
+                label="Reconstruction step",
+                options=list(reversed(range(project.sofa_counter))),
+                index=project.sofa_counter-project.state_of_analysis.global_step-1,
+                key=stsk.GLOBAL_STEP,
+                on_change=self.load_sofa,
+                kwargs=dict(project=project),
+            )
 
-class _ChoiceOptionStRenderer(_InputOptionStRenderer):
-    """renders a ChoiceOption"""
+            # display sofa info
+            st.sidebar.caption(f"Resumes from step: {project.state_of_analysis.resumes_from_step}.")
 
-    _input_option: ChoiceOption
-
-    def render(self):
-        """renders the choice option as streamlit gui"""
-        st.write(f"## ChoiceOption for: {self._input_option.da2_field}")
-        st.write("### Context")
-        for context_item in self._input_option.context:
-            st.markdown(context_item)
-        st.write(f"Q: {self._input_option.question}")
-        if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
-        for answer_label, answer in self._input_option.answers.items():
-                st.button(
-                    answer_label,
-                    on_click = self._submit,
-                    #kwargs = dict(query=self.query(answer))
-                    kwargs = dict(
-                        query_factory = self.query,
-                        raw_input = answer,
-                    )
+            # sofa metrics
+            mxd = project.metrics_data
+            mxdelta = project.metrics_delta
+            if mxd:
+                level_str = int(mxd.get('reconstruction_phase',0)) * "🏅"
+                if not level_str:
+                    level_str = "**0**"
+                st.sidebar.write(f"Reconstruction level: {level_str}")
+                format_mx = lambda x: f"{(100*x):.0f}"
+                col1, col2, col3 = st.sidebar.columns(3)
+                col1.metric(
+                    "complete",
+                    format_mx(mxd.get("completeness")),
+                    format_mx(mxdelta.get("completeness")) if mxdelta else None,
                 )
-
-
-class _TextOptionStRenderer(_InputOptionStRenderer):
-    """renders a TextOption"""
-
-    _input_option: TextOption
-
-    def render(self):
-        """renders the text option as streamlit gui"""
-        st.write(f"## TextOption for: {self._input_option.da2_field}")
-        if self._input_option.context:
-            st.write("### Context\n")
-            for context_item in self._input_option.context:
-                st.write(context_item)
-        st.write(f"Q: {self._input_option.question}")
-
-        text_input = st.text_area(
-            label="Enter or modify text below",
-            height=200,
-            value=self._input_option.initial_text)
-
-        if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
-
-        st.button(
-            "Submit",
-            on_click = self._submit,
-            #kwargs = dict(query=self.query(text_input))
-            kwargs = dict(
-                query_factory = self.query,
-                raw_input = text_input,
-            )
-        )
-    
-
-class _QuoteOptionStRenderer(_InputOptionStRenderer):
-    """renders a QuoteOption"""
-
-    _input_option: QuoteOption
-
-    def render(self):
-        """renders the quote option as streamlit gui"""
-        st.write(f"## QuoteOption for: {self._input_option.da2_field}")
-        if self._input_option.context:
-            st.write("### Context")
-            for context_item in self._input_option.context:
-                st.write(context_item)
-
-        annotation = st.text_area(
-            label=self._input_option.question,
-            height=200,
-            value=self._input_option.initial_annotation,
-        )
-
-        # TODO: check: if self._input_option.is_annotation(annotation):
-
-
-        if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
-
-        st.button(
-            "Submit",
-            on_click = self._submit,
-            #kwargs = dict(query=self.query(annotation))
-            kwargs = dict(
-                query_factory = self.query,
-                raw_input = annotation,
-            )
-        )
-    
-
+                col2.metric(
+                    "correct",
+                    format_mx(mxd.get("correctness")),
+                    format_mx(mxdelta.get("correctness")) if mxdelta else None,
+                )
+                col3.metric(
+                    "comprehensive",
+                    format_mx(mxd.get("depth")),
+                    format_mx(mxdelta.get("depth")) if mxdelta else None,
+                )
 
 
 class ProjectStRenderer:
@@ -169,63 +115,51 @@ class ProjectStRenderer:
         self._project.update(query_factory(raw_input))
 
 
-    def option_gui_factory(self, option: InputOption) -> _InputOptionStRenderer:
-        """creates gui for option"""
-        logging.debug(option)
-        option_gui: _InputOptionStRenderer
-        if isinstance(option, ChoiceOption):
-            option_gui = _ChoiceOptionStRenderer(
-                submit=self.submit,
-                input_option=option
-            )
-        elif isinstance(option, TextOption):
-            option_gui = _TextOptionStRenderer(
-                submit=self.submit,
-                input_option=option
-            )
-        elif isinstance(option, QuoteOption):
-            option_gui = _QuoteOptionStRenderer(
-                submit=self.submit,
-                input_option=option
-            )
-        else:
-            raise ValueError(f"Cannot render unknown option type: {type(option)}")
-        return option_gui
-
-
     def render(self):
         """renders the project as streamlit gui"""
-        st.write(f"RENDERING THE PROJECT ({self._project.project_id})")
-        st.json(self._project.state_of_analysis.as_dict())
-        st.write(f"source_text: {self._project.state_of_analysis.da2item.source_text}")
-        st.write(f"step: {self._project.state_of_analysis.global_step}")
-        st.write(f"resumes from: {self._project.state_of_analysis.resumes_from_step}")
+        # don't render if no project
+        if self._project is None:
+            st.warning("You're using SEPPL, an e-tutor based on neural language technologies, "
+            "capable of creating original texts. The output of SEPPL is not fully "
+            "predictabe and may contain suprising, even offending speech. Please "
+            "use SEPPL responsibly.", icon="🤹")
+            return None
+
+        # render da2item
+        SofaStRenderer().render(
+            self._project.state_of_analysis,
+            self._project.metrics_data
+        )
+
+
+        # metrics and feedback
+        if self._project.state_of_analysis.global_step>0:
+            st.info(self._project.state_of_analysis.feedback, icon="👉")
+
         if self._project.metrics_data:
-            st.json(self._project.metrics_data)
+            st.json(self._project.metrics_data, expanded=False)
             st.json(
                 {
                     key: value for key, value in
                     self._project.metrics_data.items()
                     if key in ["reconstruction_phase", "completeness", "correctness", "depth"]
-                }
+                },
+                expanded=False,
             )
         
-        if self._project.state_of_analysis.global_step>0:
-            st.write(f"feedback: {self._project.state_of_analysis.feedback}")
-        st.write("argdown:")
-        st.code(
-            self._project.state_of_analysis.da2item.argdown_reconstruction,
-            language=None
-        )
 
+        # options
         # setup options
         input_options = self._project.state_of_analysis.input_options
         visible_option = self._project.state_of_analysis.visible_option
-        option_gui = self.option_gui_factory(
-            input_options[visible_option]
+        option_gui = InputOptionStRenderer.option_gui_factory(
+            input_options[visible_option],
+            self.submit
         )
-
         # render options
         option_gui.render()
         if len(input_options)>1:
-            st.button("Toggle Option", on_click = self._project.toggle_visible_option)
+            st.button("Ask me something different", on_click = self._project.toggle_visible_option)
+
+        # debugging: full da2 item
+        st.json(self._project.state_of_analysis.as_dict(), expanded=False)

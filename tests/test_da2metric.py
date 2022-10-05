@@ -25,7 +25,7 @@ def fixture_da2_items():
 
 def test_sofaeval_1(da2_items):
     """test first argument"""
-    sofaeval = SofaEvaluator()
+    sofaeval = SofaEvaluator(inference=None)
     sofaeval.update(da2_items[0])
     print(sofaeval.all_scores)
     assert sofaeval.individual_score("ValidArgdownScore")

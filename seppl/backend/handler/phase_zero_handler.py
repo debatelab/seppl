@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import logging
+import textwrap
 from typing import List
 
 import deepa2
@@ -181,19 +182,20 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
             ChoiceOption(
                 context=[f"Conclusion in argument reconstruction: `{concl_from_ad}`"],
                 question="Do you want to use this conclusion?",
-                answers={"yes": concl_from_ad},
+                answers={"Yes": concl_from_ad},
                 da2_field="conclusion",
             )
         ]
         # Adopt newly generated argument reconstruction?
         if alternative_reco:
+            display_reco = InputOption.wrap_argdown(alternative_reco)
             options += [ChoiceOption(
                 context=[
                     "SEPPL has come up with its own reconstruction:",
-                    f"``` \n{alternative_reco} \n```"
+                    f"``` \n{display_reco} \n```"
                 ],
                 question="Do you want to adopt this reconstruction and further improve it?",
-                answers={"yes": alternative_reco},
+                answers={"Yes": alternative_reco},
                 da2_field="argdown_reconstruction",
                 inference_rater=inference_rater,
             )]

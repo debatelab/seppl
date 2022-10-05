@@ -62,8 +62,8 @@ class AbstractProjectStore(ABC):
         """stores sofa's metric in current project"""
 
     @abstractmethod
-    def get_metrics(self, sofa_id: str):
-        """gets sofa's metric from current project and user"""
+    def get_metrics(self, sofa_id: str) -> Dict[str, Any]:
+        """get metrics for sofa with id sofa_id"""
 
     @abstractmethod
     def list_projects(self) -> List[str]:
@@ -84,6 +84,10 @@ class AbstractProjectStore(ABC):
 
     def set_user(self, user_id: str) -> None:
         """sets user with id user_id as current user"""
+        raise NotImplementedError
+
+    def get_user_metrics(self) -> Dict[str, Any]:
+        """get aggregate metrics for current user"""
         raise NotImplementedError
 
     def set_project(self, project_id: str) -> None:
@@ -296,6 +300,7 @@ class FirestoreProjectStore(AbstractProjectStore):
             "project_id": project_id,
             "user_id": self._user_id,
             "source_text": source_text,
+            "sofa_counter": 0,
         }
 
         # Create new project document
@@ -345,8 +350,12 @@ class FirestoreProjectStore(AbstractProjectStore):
         raise ValueError("FirestoreProjectStore: Couldn't access last sofa in project %s in store." % self._project_id)
 
     def get_length(self) -> int:
-        """get number of sofas in current project """
-        return self.get_last_sofa().global_step + 1
+        """get number of sofas in current project 
+        """
+        # get sofa counter
+        project_ref = self.db.collection(f"users/{self._user_id}/projects").document(self._project_id)
+        counter = project_ref.get().to_dict().get("sofa_counter")
+        return counter
 
     def store_sofa(self, sofa: StateOfAnalysis):
         """stores sofa in current project"""
@@ -360,6 +369,9 @@ class FirestoreProjectStore(AbstractProjectStore):
         }
         logging.info("FirestoreProjectStore: Saving sofa %s in store.", data)
         sofa_ref.set(data)
+        # increment sofa counter
+        project_ref = self.db.collection(f"users/{self._user_id}/projects").document(self._project_id)
+        project_ref.update({"sofa_counter": firestore.Increment(1)})
 
     def list_projects(self) -> List[str]:
         """list all projects of current user"""
@@ -414,11 +426,12 @@ class FirestoreProjectStore(AbstractProjectStore):
         metrics_ref = self.db.collection("metrics").document(metrics_id)
         metrics_doc = metrics_ref.get()
         if not metrics_doc.exists:
-            logging.warning("FirestoreProjectStore: No metrics with id %s in store.", metrics_id)
-            return None
-        return metrics_doc.to_dict()
+            logging.warning("FirestoreProjectStore: No metrics with id %s in store. Returning empty dict.", metrics_id)
+            return {}
+        metrics_data = metrics_doc.to_dict()
+        return metrics_data
 
-    def get_agg_metrics(self) -> Dict[str, Any]:
+    def get_user_metrics(self) -> Dict[str, Any]:
         """get aggregate metrics for current user"""
         metrics_user = self.db.collection("metrics").where(u'user_id', u'==', self._user_id).stream()
         count_mx = 0

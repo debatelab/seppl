@@ -5,6 +5,8 @@ from copy import deepcopy
 import logging
 from typing import Optional, List, Any, Dict
 
+import streamlit as st
+
 from seppl.backend.state_of_analysis import StateOfAnalysis
 from seppl.backend.inference import AbstractInferencePipeline
 from seppl.backend.project_store import AbstractProjectStore
@@ -21,10 +23,13 @@ class Project:
 
     inference: AbstractInferencePipeline
     project_id: str  # unique identifier of this project
-    global_step: int  # global counter of sofas in project history
+    sofa_counter: int  # global counter of sofas in project history
     project_store: AbstractProjectStore
     state_of_analysis: StateOfAnalysis # current sofa
-    metrics_data: Optional[Dict[str, Any]] = None # metrics data for current sofa
+    metrics_data: Dict[str, Any] = {}# metrics data for current sofa
+    metrics_delta: Dict[str, Any] = {} # metrics changes for current sofa
+    title: Optional[str] = None
+    description: Optional[str] = None
 
     def __init__(
         self,
@@ -36,12 +41,12 @@ class Project:
         self.project_id = project_id
         self.project_store = project_store
         self.project_store.set_project(self.project_id)
-        self.state_of_analysis = self.project_store.get_last_sofa()
-        self.metrics_data = self.project_store.get_metrics(
-            self.state_of_analysis.sofa_id
-        )
-        self.global_step = self.project_store.get_length()-1
+        self.sofa_counter = self.project_store.get_length()
+        self.title = self.project_store.get_title()
+        self.description = self.project_store.get_description()
 
+        # load last sofa
+        self.load_sofa()
 
         # setup chain of responsibility for handling user queries
         self.handlers: List[AbstractUserInputHandler] = [
@@ -71,6 +76,37 @@ class Project:
             )
 
 
+    def load_sofa(self, global_step: Optional[int] = None):
+        """load sofa from store
+        loads last sofa if global_step is None
+        """
+        if global_step is not None:
+            try:
+                self.state_of_analysis = self.project_store.get_sofa(global_step)
+            except ValueError as e:
+                st.error(
+                    f"Could not load state of analysis with global_step {global_step}: {e}"
+                )
+                return
+        else:
+            self.state_of_analysis = self.project_store.get_last_sofa()
+        self.sofa_counter = self.project_store.get_length()
+        self.metrics_data = self.project_store.get_metrics(
+            self.state_of_analysis.sofa_id
+        )
+        # get last sofa and correspondings metrics to calculate metrics delta
+        prev_metrics_data = self.project_store.get_metrics(
+            self.project_store.get_sofa(
+                self.state_of_analysis.resumes_from_step
+            ).sofa_id
+        )
+        self.metrics_delta = {
+            k: self.metrics_data[k] - prev_metrics_data[k]
+            for k, v in self.metrics_data.items()
+            if k in prev_metrics_data and isinstance(v, (int, float))
+        }
+
+
     def toggle_visible_option(self):
         """increments index of visible option in state of analysis"""
         n_options = len(self.state_of_analysis.input_options)
@@ -86,11 +122,10 @@ class Project:
             self.__class__.__name__,
             (query._raw_input,query.da2_field)
         )
-        self.global_step += 1
         request = Request(
             query = query,
             state_of_analysis = self.state_of_analysis,
-            global_step = self.global_step,
+            global_step = self.sofa_counter,
         )
         new_sofa = self.handlers[0].handle(request)
 
@@ -102,7 +137,17 @@ class Project:
             self.project_store.store_metrics(new_sofa)
             # update state of analysis
             self.state_of_analysis = new_sofa
-            # update metrics data
-            self.metrics_data = self.project_store.get_metrics(
+            # get new metrics data from store
+            new_metrics_data = self.project_store.get_metrics(
                 new_sofa.sofa_id
             )
+            # calculate metrics delta
+            self.metrics_delta = {
+                k: new_metrics_data[k]-self.metrics_data[k]
+                for k,v in new_metrics_data.items()
+                if k in self.metrics_data and isinstance(v, (int, float))
+            }                
+            # update metrics data
+            self.metrics_data = new_metrics_data
+            # update counter
+            self.sofa_counter = self.project_store.get_length()

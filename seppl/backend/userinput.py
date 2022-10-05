@@ -11,6 +11,8 @@ from deepa2 import (
     DeepA2Parser
 )
 
+import bs4
+
 from seppl.backend.inputoption import QuoteOption
 
 
@@ -34,12 +36,18 @@ class UserInput(ABC):
         """updates the da2item (no copy!) given the current raw input"""
         setattr(da2_item, self.da2_field, self.cast())
 
+    def stripped_input(self) -> str:
+        """strips input from html tags and trailing space"""
+        stripped_input = self._raw_input.strip()
+        soup = bs4.BeautifulSoup(stripped_input, features="html.parser")
+        return soup.get_text()
+
 class ArgdownInput(UserInput):
     """argdown input by user"""
 
     def cast(self) -> str:
         # minimal preprocessing
-        argdown_text = self._raw_input.strip()
+        argdown_text = self.stripped_input()
         return argdown_text
 
 
@@ -48,10 +56,10 @@ class CueInput(UserInput):
 
     def cast(self) -> Union[str, List[ArgdownStatement]]:
         if self.da2_field == "conclusion":
-            return [ArgdownStatement(text=self._raw_input.strip())]
+            return [ArgdownStatement(text=self.stripped_input())]
         else:
             # minimal preprocessing
-            return self._raw_input.strip()
+            return self.stripped_input()
 
 
 
@@ -60,7 +68,7 @@ class QuoteInput(UserInput):
 
     def cast(self) -> List[QuotedStatement]:
         quoted_statements = QuoteOption.annotation_as_quotes(
-            self._raw_input.strip()
+            self.stripped_input()
         )
 
         return quoted_statements
@@ -72,7 +80,7 @@ class FormalizationInput(UserInput):
 
     def cast(self) -> List[Formalization]:
         formalizations = DeepA2Parser.parse_formalization(
-            self._raw_input.strip()
+            self.stripped_input()
         )
         return formalizations
 
@@ -81,7 +89,7 @@ class KeysInput(UserInput):
 
     def cast(self) -> Optional[List[Tuple[str, str]]]:
         keys = DeepA2Parser.parse_keys(
-            self._raw_input.strip()
+            self.stripped_input()
         )
         return keys
 
