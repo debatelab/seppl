@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import logging
+import textwrap
 from typing import List, Tuple, Optional
 
 import deepa2
@@ -123,13 +124,14 @@ class PhaseTwoHandlerNoConsUsg(PhaseTwoHandler):
         options: List[InputOption] = []
         # Adopt newly generated argument reconstruction?
         if alternative_reco:
+            display_reco = InputOption.wrap_argdown(alternative_reco)
             options += [ChoiceOption(
                 context=[
                     "SEPPL has come up with its own reconstruction:",
-                    f"``` \n{alternative_reco} \n```"
+                    f"``` \n{display_reco} \n```"
                 ],
                 question="Do you want to adopt this reconstruction and further improve it?",
-                answers={"yes": alternative_reco},
+                answers={"Yes": alternative_reco},
                 da2_field="argdown_reconstruction",
                 inference_rater=inference_rater,
             )]
@@ -302,7 +304,7 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         if not metrics.individual_score("GlobalDeductiveValidityScore"):
             feedback += """ Given your formalization, the argument is not globally
             deductively valid."""
-        if not metrics.individual_score("GlobalDeductiveValidityScore"):
+        if not metrics.individual_score("LocalDeductiveValidityScore"):
             feedback += """ Given your formalization, some individual sub-argument
             is not deductively valid."""
         return feedback
@@ -345,13 +347,14 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         options: List[InputOption] = []
 
         if alternative_reco:
+            display_reco = InputOption.wrap_argdown(alternative_reco)
             options += [ChoiceOption(
                 context=[
                     "SEPPL has come up with its own reconstruction:",
-                    f"``` \n{alternative_reco} \n```"
+                    f"``` \n{display_reco} \n```"
                 ],
                 question="Do you want to adopt this reconstruction and further improve it?",
-                answers={"yes": alternative_reco},
+                answers={"Yes": alternative_reco},
                 da2_field=DA2KEY.a,
                 inference_rater=inference_rater,
             )]
