@@ -31,7 +31,7 @@ class PhaseThreeHandler(AbstractUserInputHandler):
 
     def get_feedback(self, request: Request) -> str:
         """general user feedback concerning sofa as a whole"""
-        return "👍 Excellent! This is a very good reconstruction. You're invited to further improve it. 😉"
+        return "Excellent! 👍 This is a very good reconstruction. You're invited to further improve it. 😉"
 
 
 class PhaseThreeHandlerCatchAll(PhaseThreeHandler):
@@ -78,7 +78,7 @@ class PhaseThreeHandlerCatchAll(PhaseThreeHandler):
         )
 
         # don't ask to formalize intermediary conclusions if they don't exist
-        form_fields = list(FORM_FIELDS)
+        form_fields = list(FORM_FIELDS)+[DA2KEY.k]
         parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
         if parsed_argdown:
             if not any(s.is_conclusion for s in parsed_argdown.statements[:-1]):
