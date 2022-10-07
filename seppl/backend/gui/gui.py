@@ -4,9 +4,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Optional, Dict, List
 import streamlit as st
-from seppl.backend.gui.sofa_renderer import SofaStRenderer
 
+from seppl.backend.gui.metrics_renderer import MetricsStRenderer
 from seppl.backend.gui.option_renderer import InputOptionStRenderer
+from seppl.backend.gui.sofa_renderer import SofaStRenderer
 
 from seppl.backend.project import Project
 from seppl.backend.userinput import UserInput
@@ -131,22 +132,14 @@ class ProjectStRenderer:
             self._project.metrics_data
         )
 
-
         # metrics and feedback
         if self._project.state_of_analysis.global_step>0:
             st.info(self._project.state_of_analysis.feedback, icon="👉")
+        MetricsStRenderer().render(
+            self._project.state_of_analysis,
+            self._project.metrics_data
+        )
 
-        if self._project.metrics_data:
-            st.json(self._project.metrics_data, expanded=False)
-            st.json(
-                {
-                    key: value for key, value in
-                    self._project.metrics_data.items()
-                    if key in ["reconstruction_phase", "completeness", "correctness", "depth"]
-                },
-                expanded=False,
-            )
-        
 
         # options
         # setup options
@@ -161,9 +154,13 @@ class ProjectStRenderer:
         if len(input_options)>1:
             st.button("Ask me something different", on_click = self._project.toggle_visible_option)
 
-        # debugging: full da2 item
-        st.json(self._project.state_of_analysis.as_dict(), expanded=False)
 
         # debugging: sofa info
         st.caption(f"showing {self._project.state_of_analysis.sofa_id} at {self._project.state_of_analysis.global_step}")
-    
+
+
+        # TODO: remove 
+        # debugging: full da2 item, metrics_data
+        st.json(self._project.state_of_analysis.as_dict(), expanded=False)
+        if self._project.metrics_data:
+            st.json(self._project.metrics_data, expanded=False)

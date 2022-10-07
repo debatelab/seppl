@@ -181,7 +181,7 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
         options: List[InputOption] = [
             ChoiceOption(
                 context=[f"Conclusion in argument reconstruction: `{concl_from_ad}`"],
-                question="Do you want to use this conclusion?",
+                question="Do you want to use this conclusion as part of the informal analysis?",
                 answers={"Yes": concl_from_ad},
                 da2_field="conclusion",
             )

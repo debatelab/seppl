@@ -90,11 +90,11 @@ class ChoiceOptionStRenderer(InputOptionStRenderer):
 
     def render(self):
         """renders the choice option as streamlit gui"""
-        st.write(f"## ChoiceOption for: {self._input_option.da2_field}")
-        st.write("### Context")
+        #st.write(f"## ChoiceOption for: {self._input_option.da2_field}")
+        #st.write("### Context")
         for context_item in self._input_option.context:
             st.markdown(context_item)
-        st.write(f"Q: {self._input_option.question}")
+        st.write(f"*{self._input_option.question}*")
         if self._input_option.inference_rater:
             st.write("Display InferenceRater")
         for answer_label, answer in self._input_option.answers.items():
@@ -116,12 +116,17 @@ class TextOptionStRenderer(InputOptionStRenderer):
 
     def render(self):
         """renders the text option as streamlit gui"""
-        st.write(f"## TextOption for: {self._input_option.da2_field}")
+        #st.write(f"## TextOption for: {self._input_option.da2_field}")
         if self._input_option.context:
-            st.write("### Context\n")
+            #st.write("### Context\n")
             for context_item in self._input_option.context:
                 st.write(context_item)
-        st.write(f"Q: {self._input_option.question}")
+            
+        if self._input_option.da2_field == DA2_ANGLES_MAP.a:
+            argdown_link = " (See also [argdown.org](https://argdown.org/syntax/#premise-conclusion-structures))"
+        else:
+            argdown_link = ""
+        st.write(f"*{self._input_option.question}*"+argdown_link)
 
         if self._input_option.da2_field == DA2_ANGLES_MAP.a:
             text_input = st_ace(
@@ -171,9 +176,9 @@ class QuoteOptionStRenderer(InputOptionStRenderer):
 
     def render(self):
         """renders the quote option as streamlit gui"""
-        st.write(f"## QuoteOption for: {self._input_option.da2_field}")
+        #st.write(f"## QuoteOption for: {self._input_option.da2_field}")
         if self._input_option.context:
-            st.write("### Context")
+            #st.write("### Context")
             for context_item in self._input_option.context:
                 st.write(context_item)
 
@@ -183,8 +188,6 @@ class QuoteOptionStRenderer(InputOptionStRenderer):
             height=200,
             value=self._input_option.initial_annotation,
         )
-
-        # TODO: check: if self._input_option.is_annotation(annotation):
 
 
         if self._input_option.inference_rater:

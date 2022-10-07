@@ -3,8 +3,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
-import os
-from typing import Optional, Dict, List, Tuple, Any, Union
+from typing import Optional, Dict, List, Any
 
 from deepa2 import DeepA2Item
 from google.cloud import firestore
@@ -16,13 +15,13 @@ from seppl.backend.inputoption import ChoiceOption, OptionFactory
 from seppl.backend.state_of_analysis import StateOfAnalysis
 
 # DUMMY DATA
-_SOURCE_TEXT = """It is cruel and unethical to kill animals for food
-when vegetarian options are available, especially because raising animals
-in confinement for slaughter is cruel, and many animals in the United
-States are not slaughtered humanely. Animals are sentient beings that
-have emotions and social connections. Scientific studies show that cattle,
-pigs, chickens, and all warm-blooded animals can experience stress, pain,
-and fear."""
+_SOURCE_TEXT = "It is cruel and unethical to kill animals for food "
+"when vegetarian options are available, especially because raising animals "
+"in confinement for slaughter is cruel, and many animals in the United "
+"States are not slaughtered humanely. Animals are sentient beings that "
+"have emotions and social connections. Scientific studies show that cattle, "
+"pigs, chickens, and all warm-blooded animals can experience stress, pain, "
+"and fear."
 
 
 class AbstractProjectStore(ABC):

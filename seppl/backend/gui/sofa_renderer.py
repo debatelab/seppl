@@ -118,7 +118,7 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
             if self.metrics_data.get("LocalDeductiveValidityScore"):
                 local_val = "✅"
             st.caption("Deductive validity:")
-            st.write(f"{global_val} global inference  \n{local_val} local sub-inferences")
+            st.write(f"{global_val} global &emsp; {local_val} local")
 
 class ArgumentGraphRenderer(AbstractDA2ItemRenderer):
     """renders the recos as graphviz graph"""
@@ -454,14 +454,14 @@ class SofaStRenderer:
 
             ad_expander = st.expander(
                 label="Argument reconstruction (argdown snippet)",
-                expanded=(not legal_macro_structures),
+                expanded=((not legal_macro_structures) and bool(sofa.da2item.argdown_reconstruction)),
             )
             with ad_expander:
                 argdown_renderer.render()
 
             cues_expander = st.expander(
                 label="Informal analysis and cues",
-                expanded=False,
+                expanded=(not bool(sofa.da2item.argdown_reconstruction)),
             )
             with cues_expander:
                 cues_renderer.render()
