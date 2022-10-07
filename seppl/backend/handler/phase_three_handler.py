@@ -5,10 +5,13 @@ import logging
 from typing import List
 
 import deepa2
+from deepa2.parsers import Argument
 
 from seppl.backend.handler import (
     Request,
     AbstractUserInputHandler,
+    CUE_FIELDS,
+    FORM_FIELDS,
 )
 from seppl.backend.inputoption import (
     InputOption,
@@ -28,7 +31,7 @@ class PhaseThreeHandler(AbstractUserInputHandler):
 
     def get_feedback(self, request: Request) -> str:
         """general user feedback concerning sofa as a whole"""
-        return "Excellent! Default Feedback Phase Three."
+        return "👍 Excellent! This is a very good reconstruction. You're invited to further improve it. 😉"
 
 
 class PhaseThreeHandlerCatchAll(PhaseThreeHandler):
@@ -58,6 +61,38 @@ class PhaseThreeHandlerCatchAll(PhaseThreeHandler):
         # reasons and conjectures
         options += OptionFactory.create_quote_options(
             da2_fields=[DA2KEY.r, DA2KEY.j],
+            da2_item=request.new_da2item,
+            pre_initialized=True,
+        )
+
+
+        # options for missing items
+        missing = [
+            field for field in CUE_FIELDS 
+            if not getattr(request.new_da2item, field)
+        ]
+        options += OptionFactory.create_text_options(
+            da2_fields=missing,
+            da2_item=request.new_da2item,
+            pre_initialized=False,
+        )
+
+        # don't ask to formalize intermediary conclusions if they don't exist
+        form_fields = list(FORM_FIELDS)
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if parsed_argdown:
+            if not any(s.is_conclusion for s in parsed_argdown.statements[:-1]):
+                form_fields.remove(DA2KEY.fi)
+        else:
+            logging.error("PhaseThreeHandlerNoCompleteForm: no parsed argdown")
+
+        # remaining items
+        rest = [
+            field for field in CUE_FIELDS
+            if field not in missing
+        ] + form_fields
+        options += OptionFactory.create_text_options(
+            da2_fields=rest,
             da2_item=request.new_da2item,
             pre_initialized=True,
         )

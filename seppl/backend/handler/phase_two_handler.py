@@ -36,8 +36,15 @@ class PhaseTwoHandler(AbstractUserInputHandler):
 
     def get_feedback(self, request: Request) -> str:
         """general user feedback concerning sofa as a whole"""
-        # TODO: implement!
-        return "Default Feedback Phase Two."
+        qual_exe = ""
+        if request.new_da2item.conjectures and request.new_da2item.reasons:
+            qual_exe = "strongly "        
+        feedback = (
+            f"Very good. We have a basic reconstruction that is"
+            f" {qual_exe}tied to the source text. But the logical analysis needs "
+            f"to be improved."
+        )
+        return feedback
 
     def _generate_formalization(self, request: Request, field: str) -> Tuple[Optional[str], Optional[InferenceRater]]:
         """generates formalization for given field, uses all available formalizations"""
@@ -99,8 +106,11 @@ class PhaseTwoHandlerNoConsUsg(PhaseTwoHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += """ But premises and intermediary conclusions are not
-        "consistently used in the argument's inference."""
+        feedback += " Premises and intermediary conclusions are not "
+        "consistently used in the argument's inference steps. (Note that "
+        "inference information should be provided in the format "
+        "'-- with inference-rule from (1) (2) --'.)"
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -159,7 +169,8 @@ class PhaseTwoHandlerNoCompleteForm(PhaseTwoHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += """ But the formalization of the argument is incomplete."""
+        feedback += " The formalization of the argument is incomplete."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -243,11 +254,12 @@ class PhaseTwoHandlerIllfForm(PhaseTwoHandler):
 
     def get_feedback(self, request: Request) -> str:
         metrics = request.metrics
-        feedback = super().get_feedback(request) + " But: "
+        feedback = super().get_feedback(request)
         if not metrics.individual_score("WellFormedFormScore"):
-            feedback += """ Some formalizations are not well formed."""
+            feedback += " Some formalizations are not well formed."
         if not metrics.individual_score("WellFormedKeysScore"):
-            feedback += """ Some keys don't match the formalizations."""
+            feedback += " Some keys don't match the formalizations."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -296,7 +308,7 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         return PhaseTwoHandler.is_responsible(self, request)
 
     def get_feedback(self, request: Request) -> str:
-        feedback = super().get_feedback(request) + " But: "
+        feedback = super().get_feedback(request) + " SEPPL judges: "
         metrics = request.metrics
         if not metrics.individual_score("FormCohRecoScore"):
             feedback += """ Given your keys, the formalization doesn't cohere with

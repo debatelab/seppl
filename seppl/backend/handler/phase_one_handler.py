@@ -34,7 +34,7 @@ class PhaseOneHandler(AbstractUserInputHandler):
     def get_feedback(self, request: Request) -> str:
         """general user feedback concerning sofa as a whole"""
         # TODO: implement!
-        return "Default Feedback Phase One."
+        return "We have a decent basic reconstruction (argdown and informal analysis). "
 
 
 class PhaseOneHandlerNoRJ(PhaseOneHandler):
@@ -46,6 +46,14 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
         no_rc = not any(getattr(da2item,cue) for cue in ["reasons", "conjectures"])
         logging.info("PhaseOneHandler: no reasons or conjectures = %s", no_rc)
         return PhaseOneHandler.is_responsible(self, request) and no_rc
+
+    def get_feedback(self, request: Request) -> str:
+        feedback = super().get_feedback(request)
+        feedback += " Yet no reasons or conjectures (corresponding to the "
+        "argument's premises or conclusions) have been identified "
+        "in the source text so far."
+        feedback = feedback.strip()
+        return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
         """
@@ -96,7 +104,9 @@ class PhaseOneHandlerRNotAlgn(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the reason statements identified don't refer to premises in your argument reconstruction."
+        feedback += " But the reason statements identified don't refer "
+        "to premises in your argument reconstruction."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -135,7 +145,10 @@ class PhaseOneHandlerJNotAlgn(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the conjecture statements identified don't refer to premises in your argument reconstruction."
+        feedback += " But the conjecture statements identified don't "
+        "refer to conclusions (final or intermediary) in your argument "
+        "reconstruction."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -167,7 +180,12 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " Revise and expand so that your reasons and conjectures better cohere with the rest of the analysis (esp. argument reconstruction)."
+        feedback += " SEPPL fails to see that your argument reconstruction is "
+        "actually related to the source text as suggested by the reasons/conjectures "
+        "identified thus far. You might have to revise and expand the current analysis "
+        "(esp. argument reconstruction and quotes) so that your reasons/conjectures "
+        "better cohere with the rest of the analysis."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:

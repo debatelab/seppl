@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 import logging
-import textwrap
 from typing import List
 
 import deepa2
 from deepa2.parsers import Argument, DeepA2Parser, DeepA2Layouter
+from seppl.backend.da2metric import ConclMatchesRecoScore, NoRedundancyScore, RecoCohSourceScore, ValidArgdownScore
 
 
 from seppl.backend.handler import (
@@ -14,6 +14,7 @@ from seppl.backend.handler import (
     AbstractUserInputHandler,
     CUE_FIELDS,
 )
+from seppl.backend.handler.phase_three_handler import DA2KEY
 from seppl.backend.inputoption import (
     InputOption,
     ChoiceOption,
@@ -33,8 +34,27 @@ class PhaseZeroHandler(AbstractUserInputHandler):
 
     def get_feedback(self, request: Request) -> str:
         """general user feedback concerning sofa as a whole"""
-        # TODO: implement!
-        return "Default Feedback Phase Zero."
+        da2item = request.new_da2item
+        if not any(getattr(da2item,cue) for cue in list(CUE_FIELDS)+[DA2KEY.a]):
+            return ""
+        cues_qualifier = ""
+        arg_qualifier = ""
+        metrics = request.state_of_analysis.metrics
+        if (
+            metrics.individual_score(ConclMatchesRecoScore) 
+            and metrics.individual_score(RecoCohSourceScore)
+        ):
+            cues_qualifier = "adequate "
+        if (
+            metrics.individual_score(ValidArgdownScore)
+            and metrics.individual_score(NoRedundancyScore)
+        ):
+            arg_qualifier = "well-formed "
+        else:
+            arg_qualifier = "preliminary (though deficient) "
+        feedback = f"Good. We have an {cues_qualifier}informal analysis and a "
+        f"{arg_qualifier}argument reconstruction."
+        return feedback
 
 
 class PhaseZeroHandlerNoCues(PhaseZeroHandler):
@@ -56,6 +76,14 @@ class PhaseZeroHandlerNoCues(PhaseZeroHandler):
         logging.info(" PhaseZeroHandlerNoCues created input_options: %s", options)
         return options
 
+    def get_feedback(self, request: Request) -> str:
+        feedback = super().get_feedback(request)
+        feedback += " We have no informal analysis yet. Summarizing "
+        "the argument's key point (gist) or stating its central conclusion in"
+        " your own words might be a good starting point."
+        feedback = feedback.strip()
+        return feedback
+
 
 class PhaseZeroHandlerNoArgd(PhaseZeroHandler):
     """handles phase zero requests if there is no argdown reconstruction"""
@@ -68,7 +96,8 @@ class PhaseZeroHandlerNoArgd(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But there is no argument reconstruction."
+        feedback += " There is no argument reconstruction."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -94,7 +123,9 @@ class PhaseZeroHandlerIllfArgd(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the argument reconstruction is ill-formed (illegal argdown syntax)."
+        feedback += " The argument reconstruction is ill-formed "
+        "(incorrect argdown syntax). That needs to be corrected."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -122,7 +153,9 @@ class PhaseZeroHandlerRedund(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But your argument reconstruction is redundant (premises and/or conclusions occur more than once)."
+        feedback += " Our argument reconstruction is redundant "
+        "(premises and/or conclusions occur more than once)."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -153,7 +186,11 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the conclusion statement separately provided doesn't match your argument reconstruction."
+        feedback += " The conclusion statement (separately provided "
+        " as part of the informal analysis) doesn't match your "
+        "argument reconstruction. You might want to change one "
+        "or the other."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
@@ -217,7 +254,12 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " Revise and expand so that your items better cohere."
+        feedback += " SEPPL fails to see how your argument reconstruction "
+        "is an interpretation OF the source text. You might revise and expand the "
+        "reconstruction, or provide additional/better cues (e.g., gist, paraphrase) "
+        "that close the gap between the source text and the reconstructed "
+        "argument."
+        feedback = feedback.strip()
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:
