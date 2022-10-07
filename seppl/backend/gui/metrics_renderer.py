@@ -31,7 +31,7 @@ class MetricsStRenderer:
             icon = lambda x: ("---" if x is None else ("✅" if x else "❌"))
 
             tab_da2item, tab_level0, tab_level1, tab_level2 = st.tabs(
-                ["contribution", "base metrics (level 0)", "exegetic metrics (level 1)", "logical metrics(level 2)"]
+                ["Contribution", "Base metrics (level 0)", "Exegetic metrics (level 1)", "Logical metrics(level 2)"]
             )
 
             # available components in reconstruction

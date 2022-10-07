@@ -209,7 +209,8 @@ class ArgumentGraphRenderer(AbstractDA2ItemRenderer):
 
 class SourceTextRenderer(AbstractDA2ItemRenderer):
     """renders the source text including conjectures and reasons"""
-    HTML_WRAPPER = """<div style="overflow-x: auto; border: 1px solid #e6e9ef; border-radius: 0.25rem; padding: 1rem; margin-bottom: 2.5rem">{}</div>"""
+    # border: 1px solid #e6e9ef; border-radius: 0.25rem
+    HTML_WRAPPER = """<div style="overflow-x: auto; border: 1px solid #d6d9df; border-radius: 0.25rem; padding: 1rem; margin-bottom: 2.5rem"><p><small>Reasons and conjectures in source text</small></p>{}</div>"""
 
     def __init__(self, sofa: StateOfAnalysis):
         super().__init__(sofa)
@@ -434,7 +435,7 @@ class SofaStRenderer:
         # Show output
         col_source, col_reco = st.columns(2)
         with col_source:
-            st.caption('Reasons and conjectures in source text')
+            #st.caption('Reasons and conjectures in source text')
             source_renderer.render()
 
         with col_reco:

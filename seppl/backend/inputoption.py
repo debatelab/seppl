@@ -240,9 +240,9 @@ class OptionFactory():
                 else:
                     initial_text = ""
                 if initial_text:
-                    question_text = f"Please revise the {InputOption.da2_field_name(da2_field)}."
+                    question_text = f"Please revise {InputOption.da2_field_name(da2_field)}."
                 else:
-                    question_text = f"Please enter a {InputOption.da2_field_name(da2_field)}."
+                    question_text = f"Please enter {InputOption.da2_field_name(da2_field)}."
                 input_options.append(
                     TextOption(
                         question=question_text,
@@ -274,9 +274,9 @@ class OptionFactory():
                 else:
                     quotes = None
                 if quotes:
-                    question_text = f"Please revise the {InputOption.da2_field_name(da2_field)}."
+                    question_text = f"Please revise {InputOption.da2_field_name(da2_field)}."
                 else:
-                    question_text = f"Please mark the {InputOption.da2_field_name(da2_field)}."
+                    question_text = f"Please mark {InputOption.da2_field_name(da2_field)}."
                 input_options.append(
                     QuoteOption(
                         question=question_text,
