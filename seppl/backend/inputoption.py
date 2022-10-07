@@ -26,12 +26,29 @@ class InputOption():
     question: Optional[str] = None
     inference_rater: Optional[InferenceRater] = None
 
+    _DA2_NAMES = {
+        "source_paraphrase": "paraphrase of source text",
+        "context": "description of the source text's context",
+        "conclusion": "conclusion (as part of the informal analysis)",
+        "argdown_reconstruction": "argument reconstruction",
+        "premises_formalized": "formalization of the argument's premises",
+        "conclusion_formalized": "formalization of the argument's final conclusion",
+        "intermediary_conclusions_formalized": "formalization of the argument's intermediary conclusions",
+        "plchd_substitutions": "substitutions of placeholders (in the formalizations)",
+    }
+
     def as_dict(self) -> Dict[str, Any]:
         """returns a dict representation of this input option"""
         data = asdict(self)
         data["inference_rater"] = None
         data["class"] = self.__class__.__name__
         return data
+
+    @staticmethod
+    def da2_field_name(da2_field: str) -> str:
+        """returns the full name of the da2_field"""
+        return InputOption._DA2_NAMES.get(da2_field, da2_field)
+
 
     @staticmethod
     def wrap_argdown(argdown: str) -> str:
@@ -65,6 +82,31 @@ class TextOption(InputOption):
     """
     initial_text: Optional[str] = None
     
+    @staticmethod
+    def split_da2_list(da2_list: str) -> str:
+        """splits a da2 list into multiline string
+        replaces ` | ` `\n`"""
+        # split list
+        _list = da2_list.split(" | ")
+        # remove whitespaces
+        _list = [item.strip() for item in _list]
+        # join lines
+        da2_list = "\n".join(_list)
+        return da2_list
+
+    @staticmethod
+    def join_da2_list(da2_list: str) -> str:
+        """joins a multiline string into a single line string
+        replaces `\n` with ` | `"""
+        # split lines
+        _list = da2_list.split("\n")
+        # remove whitespaces
+        _list = [item.strip() for item in _list]
+        # join list
+        da2_list = " | ".join(_list)
+        return da2_list
+
+
 @dataclass
 class QuoteOption(InputOption):
     """
@@ -198,9 +240,9 @@ class OptionFactory():
                 else:
                     initial_text = ""
                 if initial_text:
-                    question_text = f"Please revise the *{da2_field}*."
+                    question_text = f"Please revise the {InputOption.da2_field_name(da2_field)}."
                 else:
-                    question_text = f"Please enter a *{da2_field}*."
+                    question_text = f"Please enter a {InputOption.da2_field_name(da2_field)}."
                 input_options.append(
                     TextOption(
                         question=question_text,
@@ -232,9 +274,9 @@ class OptionFactory():
                 else:
                     quotes = None
                 if quotes:
-                    question_text = f"Please revise the {da2_field}."
+                    question_text = f"Please revise the {InputOption.da2_field_name(da2_field)}."
                 else:
-                    question_text = f"Please mark the {da2_field}."
+                    question_text = f"Please mark the {InputOption.da2_field_name(da2_field)}."
                 input_options.append(
                     QuoteOption(
                         question=question_text,

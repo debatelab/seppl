@@ -73,7 +73,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
                     initial_quotes=quotes,
                     inference_rater=inference_rater,
                     da2_field=field,
-                    question=f"Please add or revise {field}.",
+                    question=f"Please add or revise {InputOption.da2_field_name(field)}.",
                 )
             )
         logging.info(" PhaseOneHandlerNoRJ created input_options: %s", options)

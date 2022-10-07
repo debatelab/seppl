@@ -140,8 +140,8 @@ class ProjectStRenderer:
             self._project.metrics_data
         )
 
-
         # options
+        st.markdown("#### ✍️ Improving the current analysis")
         # setup options
         input_options = self._project.state_of_analysis.input_options
         visible_option = self._project.state_of_analysis.visible_option

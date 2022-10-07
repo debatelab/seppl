@@ -197,7 +197,7 @@ class PhaseTwoHandlerNoCompleteForm(PhaseTwoHandler):
                     inference_rater=inference_rater,
                     da2_field=field,
                     context=context,
-                    question=f"Please add or revise {field}.",
+                    question=f"Please add or revise {InputOption.da2_field_name(field)}.",
                 )
             )
         # Further options

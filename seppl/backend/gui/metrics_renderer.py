@@ -19,7 +19,7 @@ class MetricsStRenderer:
         """renders da2 item"""
 
         metrics_expander = st.expander(
-            label="Detailed metrics",
+            label="Detailed evaluation of current analysis",
             expanded=False,
         )
         with metrics_expander:

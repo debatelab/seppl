@@ -96,7 +96,7 @@ class ChoiceOptionStRenderer(InputOptionStRenderer):
             st.markdown(context_item)
         st.write(f"*{self._input_option.question}*")
         if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
+            st.caption("[Display InferenceRater]")
         for answer_label, answer in self._input_option.answers.items():
                 st.button(
                     answer_label,
@@ -114,21 +114,82 @@ class TextOptionStRenderer(InputOptionStRenderer):
 
     _input_option: TextOption
 
-    def render(self):
-        """renders the text option as streamlit gui"""
-        #st.write(f"## TextOption for: {self._input_option.da2_field}")
-        if self._input_option.context:
-            #st.write("### Context\n")
-            for context_item in self._input_option.context:
-                st.write(context_item)
-            
+    _LIST_FIELDS = [
+        DA2_ANGLES_MAP.fp,
+        DA2_ANGLES_MAP.fi,
+        DA2_ANGLES_MAP.fc,
+        DA2_ANGLES_MAP.k,
+    ]
+
+    def question(self) -> str:
+        """postprocesses and formats question"""
         if self._input_option.da2_field == DA2_ANGLES_MAP.a:
             argdown_link = " (See also [argdown.org](https://argdown.org/syntax/#premise-conclusion-structures))"
         else:
             argdown_link = ""
-        st.write(f"*{self._input_option.question}*"+argdown_link)
+        return (f"{self._input_option.question}"+argdown_link)
+
+
+    def initial_text(self) -> Optional[str]:
+        """postprocesses and formats initial_text"""
+        initial_text = self._input_option.initial_text
+        if initial_text is None:
+            return initial_text
+        if self._input_option.da2_field in self._LIST_FIELDS:
+            initial_text = TextOption.split_da2_list(initial_text)        
+        return initial_text
+
+    def postprocess_input(self, text_input: str) -> str:
+        """postprocesses input"""
+        if self._input_option.da2_field in self._LIST_FIELDS:
+            text_input = TextOption.join_da2_list(text_input)
+        return text_input
+
+    def help_text(self) -> Optional[str]:
+        """creates help_text"""
+        if self._input_option.da2_field in [
+            DA2_ANGLES_MAP.fp,
+            DA2_ANGLES_MAP.fi,
+            DA2_ANGLES_MAP.fc,
+        ]:
+            return ("One formula per line. Use the syntax `(ref: (i))` to "
+            "refer to statement (i) in argument. Example with two formulas, "
+            "referring to (1) and (4):  \n"
+            "> p (ref: (1))  \n"
+            "> p -> q (ref: (4))  \n"
+            "**Logical syntax:**  \n"
+            "* `p`, `q`, `r`, ...: propositional variables  \n"
+            "* `p -> q`: implication  \n"
+            "* `p & q`: conjunction  \n"
+            "* `p v q`: disjunction  \n"
+            "* `not p`: negation  \n"
+            "* `F`, `G` , ... : unary predicates  \n"
+            "* `R`, `S`, ... : relations  \n"
+            "* `a`, `b`, ... : names, aka object constants  \n"
+            "* `x`, `y`, ... : variables \n"
+            "* `F x` ,`R x a`  : predication  \n"
+            "* `(x): ...`: universal quantification  \n"
+            "* `(Ex): ...`: existential quantification")
+        elif self._input_option.da2_field == DA2_ANGLES_MAP.k:
+            return ("One key:value-pair per line. Use the syntax `placeholder : substitution` to "
+            "indicate that `placeholder` stands for `substitution`. Example:  \n"
+            "> p : it is raining  \n"
+            "> q : the hay is getting wet  \n")
+        return None
+
+    def render(self):
+        """renders the text option as streamlit gui"""
+
+        # context
+        if self._input_option.context:
+            for context_item in self._input_option.context:
+                st.write(context_item)
+        
 
         if self._input_option.da2_field == DA2_ANGLES_MAP.a:
+            # question
+            st.write(f"*{self.question()}*")
+            # text input
             text_input = st_ace(
                 value=self._input_option.initial_text,
                 language='markdown',
@@ -139,15 +200,22 @@ class TextOptionStRenderer(InputOptionStRenderer):
                 show_print_margin=False,
             )
         else:
+            # text input
             text_input = st.text_area(
-                label="Enter or modify text below",
+                label=self.question(),
                 height=150,
-                value=self._input_option.initial_text
+                value=self.initial_text(),
+                help=self.help_text(),
             )
 
-        if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
+        # postprocess_input
+        text_input = self.postprocess_input(text_input)
 
+        # inference rater
+        if self._input_option.inference_rater:
+            st.caption("[Display InferenceRater]")
+
+        # submit
         st.button(
             "Submit",
             on_click = self._submit,
@@ -191,7 +259,7 @@ class QuoteOptionStRenderer(InputOptionStRenderer):
 
 
         if self._input_option.inference_rater:
-            st.write("Display InferenceRater")
+            st.caption("[Display InferenceRater]")
 
         st.button(
             "Submit",
