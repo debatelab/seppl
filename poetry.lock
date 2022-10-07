@@ -1868,6 +1868,17 @@ validators = ">=0.2"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [[package]]
+name = "streamlit-ace"
+version = "0.1.1"
+description = "Ace editor component for Streamlit."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+streamlit = ">=0.63"
+
+[[package]]
 name = "tabulate"
 version = "0.8.10"
 description = "Pretty-print tabular data"
@@ -2148,7 +2159,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.11"
-content-hash = "e1e2016299ebcb2eef338ac82d7f9b2de9d3e2ccb7f5479ea477ac4e4ac46e5e"
+content-hash = "a14584cd0b1ffe56a280b4ca74f174ae5b686c4411abbd14fea7d4f456c5014c"
 
 [metadata.files]
 aiohttp = [
@@ -4053,6 +4064,10 @@ stack-data = [
 streamlit = [
     {file = "streamlit-1.12.0-py2.py3-none-any.whl", hash = "sha256:19f58ae723afaedbc85891c3a159e9576343609036713ecbb73b219a47dfe48d"},
     {file = "streamlit-1.12.0.tar.gz", hash = "sha256:1bbb406d4eee9acb055e72627212e9f04eea8ef0332f8dfeb6745bdf256c168b"},
+]
+streamlit-ace = [
+    {file = "streamlit_ace-0.1.1-py3-none-any.whl", hash = "sha256:cdf908a90058fa831fb720d29e2aef35a0f5799eac33e2b2e58ba9f3631b1aa5"},
+    {file = "streamlit_ace-0.1.1.tar.gz", hash = "sha256:1852fa19707685fd4241be9256c1ab1a89da4a3b8c28ab286e3bff122d3a1686"},
 ]
 tabulate = [
     {file = "tabulate-0.8.10-py3-none-any.whl", hash = "sha256:0ba055423dbaa164b9e456abe7920c5e8ed33fcc16f6d1b2f2d152c8e1e8b4fc"},

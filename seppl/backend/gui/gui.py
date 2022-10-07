@@ -163,3 +163,7 @@ class ProjectStRenderer:
 
         # debugging: full da2 item
         st.json(self._project.state_of_analysis.as_dict(), expanded=False)
+
+        # debugging: sofa info
+        st.caption(f"showing {self._project.state_of_analysis.sofa_id} at {self._project.state_of_analysis.global_step}")
+    

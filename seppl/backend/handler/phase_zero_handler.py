@@ -244,7 +244,8 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
         if alternative_reco:
             options += [TextOption(
                 context=["Based on your hints, SEPPL has come up with "
-                "an alternative reconstruction. Feel free to adapt it."],
+                "an alternative reconstruction."],
+                question="Feel free to use and adapt it.",
                 initial_text=alternative_reco,
                 da2_field="argdown_reconstruction",
                 inference_rater=inference_rater,

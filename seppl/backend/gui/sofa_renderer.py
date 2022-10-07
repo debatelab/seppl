@@ -37,7 +37,6 @@ class AbstractDA2ItemRenderer(ABC):
     def render(self):
         """render da2item subcomponent"""
 
-
 class FormalizationRenderer(AbstractDA2ItemRenderer):
     """renders argument formalizations"""
 
@@ -55,7 +54,7 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
             for fp in self.sofa.da2item.premises_formalized:
                 premise_list.append(
                     {
-                        "text": f"- `{fp.form}` (P{fp.ref_reco})",
+                        "text": f"(P{fp.ref_reco}) `{fp.form}`",
                         "ref_reco": fp.ref_reco
                     }
                 )
@@ -65,7 +64,7 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
             for fi in self.sofa.da2item.intermediary_conclusions_formalized:
                 interm_concl_list.append(
                     {
-                        "text": f"- `{fi.form}` (C{fi.ref_reco})",
+                        "text": f"(C{fi.ref_reco}) `{fi.form}`",
                         "ref_reco": fi.ref_reco
                     }
                 )
@@ -74,7 +73,7 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
             for fc in self.sofa.da2item.conclusion_formalized:
                 conclusion_list.append(
                     {
-                        "text": f"- `{fc.form}` (C{fc.ref_reco})",
+                        "text": f"(C{fc.ref_reco}) `{fc.form}`",
                         "ref_reco": fc.ref_reco
                     }
                 )
@@ -82,7 +81,7 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
         formalization_list = premise_list + interm_concl_list + conclusion_list
         formalization_list.sort(key=lambda x: x["ref_reco"])
 
-        formalizations_str = "\n".join([f["text"] for f in formalization_list])
+        formalizations_str = "  \n".join([f["text"] for f in formalization_list])
         return formalizations_str
 
 
@@ -103,23 +102,23 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
         if self.sofa.da2item.plchd_substitutions:
             st.caption("Placeholders:")
             plcds_str = [
-                f"- `{plcd}`: {sub}"
+                f"`{plcd}`: {sub}"
                 for plcd, sub
                 in self.sofa.da2item.plchd_substitutions
             ]
-            st.write("\n".join(plcds_str))
+            st.write("  \n".join(plcds_str))
 
         # evaluation
         if self.metrics_data:
-            global_val = "[ ]"
-            local_val = "[ ]"
+            global_val = "❌"
+            local_val = "❌"
 
             if self.metrics_data.get("GlobalDeductiveValidityScore"):
-                global_val = "[x]"
+                global_val = "✅"
             if self.metrics_data.get("LocalDeductiveValidityScore"):
-                local_val = "[x]"
+                local_val = "✅"
             st.caption("Deductive validity:")
-            st.write(f"- {global_val} global inference  \n- {local_val} local sub-inferences")
+            st.write(f"{global_val} global inference  \n{local_val} local sub-inferences")
 
 class ArgumentGraphRenderer(AbstractDA2ItemRenderer):
     """renders the recos as graphviz graph"""

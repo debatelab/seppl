@@ -198,9 +198,9 @@ class OptionFactory():
                 else:
                     initial_text = ""
                 if initial_text:
-                    question_text = f"Please revise the {da2_field}."
+                    question_text = f"Please revise the *{da2_field}*."
                 else:
-                    question_text = f"Please enter a {da2_field}."
+                    question_text = f"Please enter a *{da2_field}*."
                 input_options.append(
                     TextOption(
                         question=question_text,

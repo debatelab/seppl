@@ -5,7 +5,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import logging
 from typing import Any, Callable, Optional
+
+from deepa2 import DA2_ANGLES_MAP
 import streamlit as st
+from streamlit_ace import st_ace
 
 from seppl.backend.userinput import UserInput, INPUT_TYPES
 from seppl.backend.inputoption import (
@@ -120,10 +123,22 @@ class TextOptionStRenderer(InputOptionStRenderer):
                 st.write(context_item)
         st.write(f"Q: {self._input_option.question}")
 
-        text_input = st.text_area(
-            label="Enter or modify text below",
-            height=200,
-            value=self._input_option.initial_text)
+        if self._input_option.da2_field == DA2_ANGLES_MAP.a:
+            text_input = st_ace(
+                value=self._input_option.initial_text,
+                language='markdown',
+                theme='dawn',
+                font_size=14,
+                wrap=True,
+                show_gutter=False,
+                show_print_margin=False,
+            )
+        else:
+            text_input = st.text_area(
+                label="Enter or modify text below",
+                height=150,
+                value=self._input_option.initial_text
+            )
 
         if self._input_option.inference_rater:
             st.write("Display InferenceRater")
@@ -164,7 +179,7 @@ class QuoteOptionStRenderer(InputOptionStRenderer):
 
         annotation = st.text_area(
             label=self._input_option.question,
-            help="Format: '[annotated text](1)'.  \nAnnotations stripped of markup must match source text.",
+            help="Format: `[annotated text](1)`.  \nAnnotations stripped of markup must match source text.",
             height=200,
             value=self._input_option.initial_annotation,
         )
