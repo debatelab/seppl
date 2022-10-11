@@ -73,12 +73,16 @@ class AbstractProjectStore(ABC):
         """return id of current project project_id """
 
     @abstractmethod
-    def get_title(self) -> str:
+    def get_title(self) -> Optional[str]:
         """title of current project"""
 
     @abstractmethod
-    def get_description(self) -> str:
+    def get_description(self) -> Optional[str]:
         """description of current project"""
+
+    @abstractmethod
+    def get_course_id(self) -> Optional[str]:
+        """course_id of current project"""
 
 
     def set_user(self, user_id: str) -> None:
@@ -265,6 +269,7 @@ class FirestoreProjectStore(AbstractProjectStore):
         da2item: DeepA2Item,
         title: str = None,
         description: str = None,
+        course_id: str = "default_course",
     ) -> None:
         """creates new project for current user, set current project accordingly"""
         # check if project exists
@@ -298,6 +303,7 @@ class FirestoreProjectStore(AbstractProjectStore):
             "description": description,
             "project_id": project_id,
             "user_id": self._user_id,
+            "course_id": course_id,
             "source_text": source_text,
             "sofa_counter": 0,
         }
@@ -385,19 +391,26 @@ class FirestoreProjectStore(AbstractProjectStore):
         """return id of current project project_id """
         return self._project_id
 
-    def get_title(self) -> str:
+    def get_title(self) -> Optional[str]:
         """title of current project"""
         pj_coll = self.db.collection(f"users/{self._user_id}/projects")
         pj_ref = pj_coll.document(self._project_id)
         pj_doc = pj_ref.get()        
         return pj_doc.get("title")
 
-    def get_description(self) -> str:
+    def get_description(self) -> Optional[str]:
         """description of current project"""
         pj_coll = self.db.collection(f"users/{self._user_id}/projects")
         pj_ref = pj_coll.document(self._project_id)
         pj_doc = pj_ref.get()        
         return pj_doc.get("description")
+        
+    def get_course_id(self) -> Optional[str]:
+        """course_id of current project"""
+        pj_coll = self.db.collection(f"users/{self._user_id}/projects")
+        pj_ref = pj_coll.document(self._project_id)
+        pj_doc = pj_ref.get()        
+        return pj_doc.get("course_id")
         
     def store_metrics(self, sofa: StateOfAnalysis):
         """stores sofa's metrics"""

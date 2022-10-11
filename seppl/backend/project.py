@@ -30,6 +30,7 @@ class Project:
     metrics_delta: Dict[str, Any] = {} # metrics changes for current sofa
     title: Optional[str] = None
     description: Optional[str] = None
+    course_id: Optional[str] = None
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class Project:
         self.sofa_counter = self.project_store.get_length()
         self.title = self.project_store.get_title()
         self.description = self.project_store.get_description()
+        self.course_id = self.project_store.get_course_id()
 
         # load last sofa
         self.load_sofa()
