@@ -49,9 +49,9 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " Yet no reasons or conjectures (corresponding to the "
+        feedback += (" Yet no reasons or conjectures (corresponding to the "
         "argument's premises or conclusions) have been identified "
-        "in the source text so far."
+        "in the source text so far.")
         feedback = feedback.strip()
         return feedback
 
@@ -104,8 +104,8 @@ class PhaseOneHandlerRNotAlgn(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the reason statements identified don't refer "
-        "to premises in your argument reconstruction."
+        feedback += (" But the reason statements identified don't refer "
+        "to premises in your argument reconstruction.")
         feedback = feedback.strip()
         return feedback
 
@@ -145,9 +145,9 @@ class PhaseOneHandlerJNotAlgn(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " But the conjecture statements identified don't "
+        feedback += (" But the conjecture statements identified don't "
         "refer to conclusions (final or intermediary) in your argument "
-        "reconstruction."
+        "reconstruction.")
         feedback = feedback.strip()
         return feedback
 
@@ -180,11 +180,11 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " SEPPL fails to see that your argument reconstruction is "
+        feedback += (" SEPPL fails to see that your argument reconstruction is "
         "actually related to the source text as suggested by the reasons/conjectures "
         "identified thus far. You might have to revise and expand the current analysis "
         "(esp. argument reconstruction and quotes) so that your reasons/conjectures "
-        "better cohere with the rest of the analysis."
+        "better cohere with the rest of the analysis.")
         feedback = feedback.strip()
         return feedback
 

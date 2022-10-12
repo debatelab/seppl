@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Any, Callable, Optional
 
-from deepa2 import DA2_ANGLES_MAP
+from deepa2 import DA2_ANGLES_MAP, DeepA2Parser
 import streamlit as st
 from streamlit_ace import st_ace
 
@@ -121,6 +121,30 @@ class TextOptionStRenderer(InputOptionStRenderer):
         DA2_ANGLES_MAP.k,
     ]
 
+    def ready(self, text_input: str) -> bool:
+        """checks if text_input is ready for submission"""
+        # check formalization
+        if self._input_option.da2_field in [
+            DA2_ANGLES_MAP.fp,
+            DA2_ANGLES_MAP.fi,
+            DA2_ANGLES_MAP.fc,
+        ]:
+            parsed = DeepA2Parser.parse_formalization(text_input)
+            if parsed is None:
+                return False
+            elif None in parsed:
+                return False
+        # check plcd substitutions
+        if self._input_option.da2_field in [
+            DA2_ANGLES_MAP.k,
+        ]:
+            parsed = DeepA2Parser.parse_keys(text_input)
+            if parsed is None:
+                return False
+            elif None in parsed:
+                return False
+        return True
+
     def question(self) -> str:
         """postprocesses and formats question"""
         if self._input_option.da2_field == DA2_ANGLES_MAP.a:
@@ -128,7 +152,6 @@ class TextOptionStRenderer(InputOptionStRenderer):
         else:
             argdown_link = ""
         return (f"{self._input_option.question}"+argdown_link)
-
 
     def initial_text(self) -> Optional[str]:
         """postprocesses and formats initial_text"""
@@ -191,7 +214,19 @@ class TextOptionStRenderer(InputOptionStRenderer):
             st.write(f"*{self.question()}*")
             # text input
             text_input = st_ace(
-                value=self._input_option.initial_text,
+                value=self._input_option.initial_text if self._input_option.initial_text else "",
+                placeholder="Example 1:  \n"
+                "(1) some premise  \n"
+                "----  \n"
+                "(2) a conclusion \n"
+                "Example 2:  \n"
+                "(1) some premise  \n"
+                "(2) another premise  \n"
+                "-- with some-inference-scheme from (1) (2) --  \n"
+                "(3) an intermediary conclusion \n"
+                "(4) a third premise  \n"
+                "-- with some-inference-scheme from (3) (4) --  \n"
+                "(5) final conclusion  \n",
                 language='markdown',
                 theme='dawn',
                 font_size=14,
@@ -223,7 +258,8 @@ class TextOptionStRenderer(InputOptionStRenderer):
             kwargs = dict(
                 query_factory = self.query,
                 raw_input = text_input,
-            )
+            ),
+            disabled=not self.ready(text_input)
         )
     
 
@@ -237,7 +273,6 @@ class QuoteOptionStRenderer(InputOptionStRenderer):
         logging.info("QuoteOption checking: %s", annotation)
         ready = (
             self._input_option.is_annotation(annotation)
-            and annotation != self._input_option.initial_annotation
         )
         logging.info("QuoteOption ready: %s", ready)
         return ready

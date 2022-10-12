@@ -102,6 +102,8 @@ class TextOption(InputOption):
         _list = da2_list.split("\n")
         # remove whitespaces
         _list = [item.strip() for item in _list]
+        # remove empty lines
+        _list = [item for item in _list if item]
         # join list
         da2_list = " | ".join(_list)
         return da2_list

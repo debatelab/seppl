@@ -71,12 +71,13 @@ class FormalizationRenderer(AbstractDA2ItemRenderer):
         conclusion_list = []
         if self.sofa.da2item.conclusion_formalized:
             for fc in self.sofa.da2item.conclusion_formalized:
-                conclusion_list.append(
-                    {
-                        "text": f"(C{fc.ref_reco}) `{fc.form}`",
-                        "ref_reco": fc.ref_reco
-                    }
-                )
+                if fc:
+                    conclusion_list.append(
+                        {
+                            "text": f"(C{fc.ref_reco}) `{fc.form}`",
+                            "ref_reco": fc.ref_reco
+                        }
+                    )
         # merge and sort by ref_reco
         formalization_list = premise_list + interm_concl_list + conclusion_list
         formalization_list.sort(key=lambda x: x["ref_reco"])

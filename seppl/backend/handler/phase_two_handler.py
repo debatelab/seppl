@@ -106,10 +106,10 @@ class PhaseTwoHandlerNoConsUsg(PhaseTwoHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " Premises and intermediary conclusions are not "
+        feedback += (" Premises and intermediary conclusions are not "
         "consistently used in the argument's inference steps. (Note that "
         "inference information should be provided in the format "
-        "'-- with inference-rule from (1) (2) --'.)"
+        "'-- with inference-rule from (1) (2) --'.)")
         feedback = feedback.strip()
         return feedback
 
@@ -311,14 +311,14 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
         feedback = super().get_feedback(request) + " SEPPL judges: "
         metrics = request.metrics
         if not metrics.individual_score("FormCohRecoScore"):
-            feedback += """ Given your keys, the formalization doesn't cohere with
-            your argument reconstruction."""
+            feedback += (" Given your keys, the formalization doesn't cohere with "
+            "your argument reconstruction.")
         if not metrics.individual_score("GlobalDeductiveValidityScore"):
-            feedback += """ Given your formalization, the argument is not globally
-            deductively valid."""
+            feedback += (" Given your formalization, the argument is not globally "
+            "deductively valid.")
         if not metrics.individual_score("LocalDeductiveValidityScore"):
-            feedback += """ Given your formalization, some individual sub-argument
-            is not deductively valid."""
+            feedback += (" Given your formalization, some individual sub-argument "
+            "is not deductively valid.")
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:

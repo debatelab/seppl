@@ -713,6 +713,8 @@ class FormCohRecoScore(ArgdownMetric):
             return None
         if (
             not self.da2item.plchd_substitutions or
+            not self.da2item.conclusion_formalized or
+            not self.da2item.premises_formalized or
             not self._cache["parsed_argdown"]
         ):
             return None
@@ -723,16 +725,13 @@ class FormCohRecoScore(ArgdownMetric):
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
         # use fi only of interm.concl.formalized exist
-        fi = "+fi" if self.formatted_da2item[DA2_ANGLES_MAP.fi] else ""
+        fi = "+fi" if self.da2item.intermediary_conclusions_formalized else ""
         coheres = int(
-            loss("c+fp+k => fc") <= loss("c+fp => fc") and
-            loss(f"p+fc{fi}+k => fp") <= loss(f"p+fc{fi} => fp") and
-            (
-                (not has_interm_concl) or 
-                (loss("i+fc+fp+k => fi") <= loss("fc+fp => fi"))
-            ) and
-            # loss("fc+k => c") <= loss("fp+k => c") and  # `c` can be inferred in very easy arguments
-            loss(f"fp{fi}+k => p") <= loss(f"fc{fi}+k => p")
+            (loss("c+k => fc") <= loss("c => fc")) and
+            (loss("p+k => fp") <= loss("p => fp")) and
+            (loss("i+k => fi") <= loss("i => fi") if (fi and has_interm_concl) else True) and
+            (loss(f"fp+k => p") <= loss(f"fc+k => p")) and
+            (loss(f"fi+k => i") <= loss(f"fc+k => i") if (fi and has_interm_concl) else True)
         ) 
         return coheres
 
@@ -802,8 +801,9 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
                     return i_conclusion_formulae[idx]
         # search conclusion
         if self.da2item.conclusion_formalized and conclusion_formulae:
-            if self.da2item.conclusion_formalized[0].ref_reco == label:
-                return conclusion_formulae[0]
+            if self.da2item.conclusion_formalized[0]:
+                if self.da2item.conclusion_formalized[0].ref_reco == label:
+                    return conclusion_formulae[0]
 
         return None
 

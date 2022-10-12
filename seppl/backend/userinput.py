@@ -82,6 +82,11 @@ class FormalizationInput(UserInput):
         formalizations = DeepA2Parser.parse_formalization(
             self.stripped_input()
         )
+        # drop None values
+        if formalizations:
+            formalizations = [f for f in formalizations if f is not None]
+        if not formalizations:
+            formalizations = None
         return formalizations
 
 class KeysInput(UserInput):

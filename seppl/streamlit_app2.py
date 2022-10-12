@@ -1,6 +1,7 @@
 """SEPPL streamlit app"""
 
 import logging
+from re import S
 from typing import Optional
 
 import streamlit as st
@@ -29,29 +30,55 @@ def check_authentification() -> bool:
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["password"]:
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store password
-            st.session_state["user_id"] = "marcantonio-galuppi"
-        else:
-            st.session_state["password_correct"] = False
+        if "password" in st.session_state and "username" in st.session_state:
+            if st.session_state.password and st.session_state.username:
+                st.session_state["password_correct"] = FirestoreProjectStore.authenticate_user(
+                    user_id=st.session_state.username,
+                    password=st.session_state.password,
+                )
+
+        if "password_correct" in st.session_state:
+            if st.session_state.password_correct:
+                st.session_state["user_id"] = st.session_state.username
+                del st.session_state.password
+
+        # elif (
+        #     st.session_state["password"] == st.secrets["password"] 
+        #     and st.session_state["user_id"] == "marcantonio-galuppi"
+        # ):
+        #     st.session_state["password_correct"] = True
+        #     del st.session_state["password"]  # don't store password
+        # else:
+        #     st.session_state["password_correct"] = False
+
+    def display_login(incorrect_password: bool = False):
+        """Displays a login screen."""
+        _, col, _ = st.columns([1,2,1])
+        with col:
+            st.text_input(
+                "Username",
+                key="username",
+                on_change=password_entered,
+            )
+            if st.session_state["username"]:
+                st.text_input(
+                    "Password",
+                    type="password",
+                    key="password",
+                    on_change=password_entered,
+                )
+            if incorrect_password:
+                st.error("😕 Password incorrect")
+            #if st.button("Login"):
+            #    password_entered()
 
     if "password_correct" not in st.session_state:
         # First run, show input for password.
-        _, col, _ = st.columns([1,2,1])
-        with col:
-            st.text_input(
-                "Password", type="password", on_change=password_entered, key="password"
-            )
+        display_login()
         return False
     elif not st.session_state["password_correct"]:
         # Password not correct, show input + error.
-        _, col, _ = st.columns([1,2,1])
-        with col:
-            st.text_input(
-                "Password", type="password", on_change=password_entered, key="password"
-            )
-            st.error("😕 Password incorrect")
+        display_login(incorrect_password=True)
         return False
     else:
         # Password correct.

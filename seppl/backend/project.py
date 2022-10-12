@@ -132,7 +132,7 @@ class Project:
         new_sofa = self.handlers[0].handle(request)
 
         # check if sofa has changed at all
-        if not new_sofa == self.state_of_analysis:
+        if not new_sofa.da2item == self.state_of_analysis.da2item:
             # write new sofa to store
             self.project_store.store_sofa(new_sofa)
             # write metrics to store

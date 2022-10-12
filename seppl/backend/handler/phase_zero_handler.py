@@ -38,22 +38,26 @@ class PhaseZeroHandler(AbstractUserInputHandler):
         if not any(getattr(da2item,cue) for cue in list(CUE_FIELDS)+[DA2KEY.a]):
             return ""
         cues_qualifier = ""
-        arg_qualifier = ""
         metrics = request.state_of_analysis.metrics
         if (
             metrics.individual_score(ConclMatchesRecoScore) 
             and metrics.individual_score(RecoCohSourceScore)
         ):
             cues_qualifier = "adequate "
-        if (
-            metrics.individual_score(ValidArgdownScore)
-            and metrics.individual_score(NoRedundancyScore)
-        ):
-            arg_qualifier = "well-formed "
+        feedback = f"Good. We have an {cues_qualifier}informal analysis"
+
+        if da2item.argdown_reconstruction:
+            arg_qualifier = ""
+            if (
+                metrics.individual_score(ValidArgdownScore)
+                and metrics.individual_score(NoRedundancyScore)
+            ):
+                arg_qualifier = "well-formed "
+            else:
+                arg_qualifier = "preliminary (though deficient) "
+            feedback += f" and a {arg_qualifier}argument reconstruction."
         else:
-            arg_qualifier = "preliminary (though deficient) "
-        feedback = f"Good. We have an {cues_qualifier}informal analysis and a "
-        f"{arg_qualifier}argument reconstruction."
+            feedback += "."
         return feedback
 
 
@@ -77,8 +81,7 @@ class PhaseZeroHandlerNoCues(PhaseZeroHandler):
         return options
 
     def get_feedback(self, request: Request) -> str:
-        feedback = super().get_feedback(request)
-        feedback += " We have no informal analysis yet. Summarizing "
+        feedback = " We have no informal analysis yet. Summarizing "
         "the argument's key point (gist) or stating its central conclusion in"
         " your own words might be a good starting point."
         feedback = feedback.strip()
@@ -96,7 +99,7 @@ class PhaseZeroHandlerNoArgd(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " There is no argument reconstruction."
+        feedback += " But there is no argument reconstruction."
         feedback = feedback.strip()
         return feedback
 
@@ -123,8 +126,8 @@ class PhaseZeroHandlerIllfArgd(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " The argument reconstruction is ill-formed "
-        "(incorrect argdown syntax). That needs to be corrected."
+        feedback += (" Yet the argument reconstruction is ill-formed "
+        "(incorrect argdown syntax). That needs to be corrected.")
         feedback = feedback.strip()
         return feedback
 
@@ -153,8 +156,8 @@ class PhaseZeroHandlerRedund(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " Our argument reconstruction is redundant "
-        "(premises and/or conclusions occur more than once)."
+        feedback += (" More specifically, our argument reconstruction is redundant "
+        "(premises and/or conclusions occur more than once).")
         feedback = feedback.strip()
         return feedback
 
@@ -186,10 +189,10 @@ class PhaseZeroHandlerMismatchCA(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " The conclusion statement (separately provided "
+        feedback += (" But the conclusion statement (separately provided "
         " as part of the informal analysis) doesn't match your "
         "argument reconstruction. You might want to change one "
-        "or the other."
+        "or the other.")
         feedback = feedback.strip()
         return feedback
 
@@ -254,11 +257,13 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
 
     def get_feedback(self, request: Request) -> str:
         feedback = super().get_feedback(request)
-        feedback += " SEPPL fails to see how your argument reconstruction "
-        "is an interpretation OF the source text. You might revise and expand the "
-        "reconstruction, or provide additional/better cues (e.g., gist, paraphrase) "
-        "that close the gap between the source text and the reconstructed "
-        "argument."
+        feedback += (
+            " SEPPL fails to see how your argument reconstruction "
+            "is an interpretation OF the source text. You might revise and expand the "
+            "reconstruction, or provide additional/better cues (e.g., gist, paraphrase) "
+            "that close the gap between the source text and the reconstructed "
+            "argument."
+        )
         feedback = feedback.strip()
         return feedback
 

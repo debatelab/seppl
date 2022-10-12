@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.2.0-cudnn8-runtime-ubuntu20.04
+FROM python:3.9-slim
 
 LABEL maintainer "Gregor Betz  <gregor.betz@gmail.com>"
 
@@ -19,6 +19,14 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 # System deps:
 RUN pip install poetry==1.1.12
 RUN poetry install --no-interaction --no-ansi
+RUN poetry self add poetry-dotenv-plugin
+
+
+# --------------- Configure Prover ---------------
+
+RUN sh install_prover.sh
+RUN mkdir -p /root/.prover
+COPY ./.prover /root/.prover
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit

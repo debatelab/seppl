@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, Optional, Dict, List
 import streamlit as st
+import textwrap
 
 from seppl.backend.gui.metrics_renderer import MetricsStRenderer
 from seppl.backend.gui.option_renderer import InputOptionStRenderer
@@ -58,7 +59,7 @@ class SidebarRenderer:
             if project.title:
                 st.sidebar.subheader(project.title)
             if project.description:
-                st.sidebar.caption(project.description)
+                st.sidebar.caption(textwrap.shorten(project.description, width=200))
 
             # select sofa
             st.sidebar.selectbox(

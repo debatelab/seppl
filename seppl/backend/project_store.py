@@ -40,6 +40,11 @@ class AbstractProjectStore(ABC):
         self._user_id = user_id
         self._project_id = project_id
 
+    @staticmethod
+    def authenticate_user(user_id: str, password: str) -> bool:
+        """get_sofa in current project at step idx"""
+        raise NotImplementedError
+
     @abstractmethod
     def get_sofa(self, idx: int) -> StateOfAnalysis:
         """get_sofa in current project at step idx"""
@@ -253,6 +258,27 @@ class FirestoreProjectStore(AbstractProjectStore):
             self.set_project(project_id)
 
 
+    @staticmethod
+    def authenticate_user(user_id: str, password: str) -> bool:
+        if not (user_id and password):
+            return False
+
+        authenticated = True
+        db = firestore.Client.from_service_account_json("seppl-deepa2-firebase-key.json")
+        # Check user password match
+        doc_ref = db.collection("users").document(user_id)
+        doc = doc_ref.get()
+        if (
+            not doc.exists
+            or doc.to_dict().get("password") != password
+        ):
+            authenticated = False
+
+        del db
+        return authenticated
+        
+
+
     def set_project(self, project_id: str) -> None:
         """sets project_id"""
         # check if project exists
@@ -409,8 +435,11 @@ class FirestoreProjectStore(AbstractProjectStore):
         """course_id of current project"""
         pj_coll = self.db.collection(f"users/{self._user_id}/projects")
         pj_ref = pj_coll.document(self._project_id)
-        pj_doc = pj_ref.get()        
-        return pj_doc.get("course_id")
+        pj_doc = pj_ref.get()
+        try:
+            return pj_doc.get("course_id")
+        except:
+            return None
         
     def store_metrics(self, sofa: StateOfAnalysis):
         """stores sofa's metrics"""

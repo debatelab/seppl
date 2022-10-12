@@ -357,7 +357,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "deepa2"
-version = "0.1.13rc0"
+version = "0.1.13"
 description = "Cast NLP data as multiangular DeepA2 datasets and integrate these in training pipeline"
 category = "main"
 optional = false
@@ -376,10 +376,6 @@ requests = ">=2.27.1,<3.0.0"
 sacrebleu = ">=2.1.0,<3.0.0"
 ttp = ">=0.8.4,<0.9.0"
 typer = {version = ">=0.4.0,<0.5.0", extras = ["all"]}
-
-[package.source]
-type = "file"
-url = "../deepa2/dist/deepa2-0.1.13rc0-py3-none-any.whl"
 
 [[package]]
 name = "dill"
@@ -418,6 +414,17 @@ python-versions = "*"
 
 [package.extras]
 tests = ["asttokens", "littleutils", "pytest", "rich"]
+
+[[package]]
+name = "Faker"
+version = "15.1.0"
+description = "Faker is a Python package that generates fake data for you."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+python-dateutil = ">=2.4"
 
 [[package]]
 name = "filelock"
@@ -657,7 +664,7 @@ protobuf = ">=3.12.0"
 
 [[package]]
 name = "huggingface-hub"
-version = "0.9.1"
+version = "0.10.1"
 description = "Client library to download and publish models, datasets and other repos on the huggingface.co hub"
 category = "main"
 optional = false
@@ -672,12 +679,13 @@ tqdm = "*"
 typing-extensions = ">=3.7.4.3"
 
 [package.extras]
-all = ["black (==22.3)", "datasets", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)", "pytest", "pytest-cov", "soundfile"]
-dev = ["black (==22.3)", "datasets", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)", "pytest", "pytest-cov", "soundfile"]
+all = ["InquirerPy (==0.3.4)", "Jinja2", "black (==22.3)", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)", "jedi", "mypy", "pytest", "pytest-cov", "soundfile"]
+cli = ["InquirerPy (==0.3.4)"]
+dev = ["InquirerPy (==0.3.4)", "Jinja2", "black (==22.3)", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)", "jedi", "mypy", "pytest", "pytest-cov", "soundfile"]
 fastai = ["fastai (>=2.4)", "fastcore (>=1.3.27)", "toml"]
-quality = ["black (==22.3)", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)"]
+quality = ["black (==22.3)", "flake8 (>=3.8.3)", "flake8-bugbear", "isort (>=5.5.4)", "mypy"]
 tensorflow = ["graphviz", "pydot", "tensorflow"]
-testing = ["datasets", "pytest", "pytest-cov", "soundfile"]
+testing = ["InquirerPy (==0.3.4)", "Jinja2", "isort (>=5.5.4)", "jedi", "pytest", "pytest-cov", "soundfile"]
 torch = ["torch"]
 
 [[package]]
@@ -1041,7 +1049,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "networkx"
-version = "2.8.6"
+version = "2.8.7"
 description = "Python package for creating and manipulating graphs and networks"
 category = "main"
 optional = false
@@ -1049,7 +1057,7 @@ python-versions = ">=3.8"
 
 [package.extras]
 default = ["matplotlib (>=3.4)", "numpy (>=1.19)", "pandas (>=1.3)", "scipy (>=1.8)"]
-developer = ["mypy (>=0.961)", "pre-commit (>=2.20)"]
+developer = ["mypy (>=0.981)", "pre-commit (>=2.20)"]
 doc = ["nb2plots (>=0.6)", "numpydoc (>=1.4)", "pillow (>=9.1)", "pydata-sphinx-theme (>=0.9)", "sphinx (>=5)", "sphinx-gallery (>=0.10)", "texext (>=0.6.6)"]
 extra = ["lxml (>=4.6)", "pydot (>=1.4.2)", "pygraphviz (>=1.9)", "sympy (>=1.10)"]
 test = ["codecov (>=2.1)", "pytest (>=7.1)", "pytest-cov (>=3.0)"]
@@ -1522,7 +1530,7 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "pyyaml"
+name = "PyYAML"
 version = "6.0"
 description = "YAML parser and emitter for Python"
 category = "main"
@@ -1880,11 +1888,11 @@ streamlit = ">=0.63"
 
 [[package]]
 name = "tabulate"
-version = "0.8.10"
+version = "0.9.0"
 description = "Pretty-print tabular data"
 category = "main"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.7"
 
 [package.extras]
 widechars = ["wcwidth"]
@@ -2063,6 +2071,14 @@ devenv = ["black", "pyroma", "pytest-cov", "zest.releaser"]
 test = ["pytest (>=4.3)", "pytest-mock (>=3.3)"]
 
 [[package]]
+name = "Unidecode"
+version = "1.3.6"
+description = "ASCII transliterations of Unicode text"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+
+[[package]]
 name = "urllib3"
 version = "1.26.12"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -2159,7 +2175,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.11"
-content-hash = "a14584cd0b1ffe56a280b4ca74f174ae5b686c4411abbd14fea7d4f456c5014c"
+content-hash = "3037e4969c4b6df393c8dd7d386ae5e796104510af6957448f40ec2ef4ca22f1"
 
 [metadata.files]
 aiohttp = [
@@ -2588,7 +2604,8 @@ decorator = [
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
 deepa2 = [
-    {file = "deepa2-0.1.13rc0-py3-none-any.whl", hash = "sha256:61bfb7c459a9dd1e8c067a1b68ae19ee649fe0630d781abd5614c48b273345bc"},
+    {file = "deepa2-0.1.13-py3-none-any.whl", hash = "sha256:311c8e2ac231e32b7d6627e7b3729e2f282ecde2bbf81008718b2b224547a2d3"},
+    {file = "deepa2-0.1.13.tar.gz", hash = "sha256:a51416c4586de6775f74a41a219517f2af9535802c7fb8bdd3ab7d76d3c4cc5b"},
 ]
 dill = [
     {file = "dill-0.3.5.1-py2.py3-none-any.whl", hash = "sha256:33501d03270bbe410c72639b350e941882a8b0fd55357580fbc873fba0c59302"},
@@ -2654,6 +2671,10 @@ entrypoints = [
 executing = [
     {file = "executing-1.1.0-py2.py3-none-any.whl", hash = "sha256:4a6d96ba89eb3dcc11483471061b42b9006d8c9f81c584dd04246944cd022530"},
     {file = "executing-1.1.0.tar.gz", hash = "sha256:2c2c07d1ec4b2d8f9676b25170f1d8445c0ee2eb78901afb075a4b8d83608c6a"},
+]
+Faker = [
+    {file = "Faker-15.1.0-py3-none-any.whl", hash = "sha256:920eadd234a30b9603f50d75ee0a5f37fc064f90ef9207c6d3d2c691b786c480"},
+    {file = "Faker-15.1.0.tar.gz", hash = "sha256:bc2634053fd1fd82edd78e6b9bdcdcee19a0d9501227b6e0fc531c7b00b0e805"},
 ]
 filelock = [
     {file = "filelock-3.8.0-py3-none-any.whl", hash = "sha256:617eb4e5eedc82fc5f47b6d61e4d11cb837c56cb4544e39081099fa17ad109d4"},
@@ -2816,8 +2837,8 @@ grpcio-status = [
     {file = "grpcio_status-1.48.2-py3-none-any.whl", hash = "sha256:2c33bbdbe20188b2953f46f31af669263b6ee2a9b2d38fa0d36ee091532e21bf"},
 ]
 huggingface-hub = [
-    {file = "huggingface_hub-0.9.1-py3-none-any.whl", hash = "sha256:7a588046bdeb84e7bc99b3da58bbb4312a56d94ba51ebc60dfe610c18b3d0b9f"},
-    {file = "huggingface_hub-0.9.1.tar.gz", hash = "sha256:6395f26aaf44bbb4a73d3e14aca228fa39534696f651c6c82a6347f8c9f5950b"},
+    {file = "huggingface_hub-0.10.1-py3-none-any.whl", hash = "sha256:dc3b0e9a663fe6cad6a8522055c02a9d8673dbd527223288e2442bc028c253db"},
+    {file = "huggingface_hub-0.10.1.tar.gz", hash = "sha256:5c188d5b16bec4b78449f8681f9975ff9d321c16046cc29bcf0d7e464ff29276"},
 ]
 idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
@@ -3291,8 +3312,8 @@ nest-asyncio = [
     {file = "nest_asyncio-1.5.6.tar.gz", hash = "sha256:d267cc1ff794403f7df692964d1d2a3fa9418ffea2a3f6859a439ff482fef290"},
 ]
 networkx = [
-    {file = "networkx-2.8.6-py3-none-any.whl", hash = "sha256:2a30822761f34d56b9a370d96a4bf4827a535f5591a4078a453425caeba0c5bb"},
-    {file = "networkx-2.8.6.tar.gz", hash = "sha256:bd2b7730300860cbd2dafe8e5af89ff5c9a65c3975b352799d87a6238b4301a6"},
+    {file = "networkx-2.8.7-py3-none-any.whl", hash = "sha256:15cdf7f7c157637107ea690cabbc488018f8256fa28242aed0fb24c93c03a06d"},
+    {file = "networkx-2.8.7.tar.gz", hash = "sha256:815383fd52ece0a7024b5fd8408cc13a389ea350cd912178b82eed8b96f82cd3"},
 ]
 nltk = [
     {file = "nltk-3.7-py3-none-any.whl", hash = "sha256:ba3de02490308b248f9b94c8bc1ac0683e9aa2ec49ee78536d8667afb5e3eec8"},
@@ -3733,7 +3754,7 @@ pywin32 = [
     {file = "pywin32-304-cp39-cp39-win32.whl", hash = "sha256:25746d841201fd9f96b648a248f731c1dec851c9a08b8e33da8b56148e4c65cc"},
     {file = "pywin32-304-cp39-cp39-win_amd64.whl", hash = "sha256:d24a3382f013b21aa24a5cfbfad5a2cd9926610c0affde3e8ab5b3d7dbcf4ac9"},
 ]
-pyyaml = [
+PyYAML = [
     {file = "PyYAML-6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4db7c7aef085872ef65a8fd7d6d09a14ae91f691dec3e87ee5ee0539d516f53"},
     {file = "PyYAML-6.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:9df7ed3b3d2e0ecfe09e14741b857df43adb5a3ddadc919a2d94fbdf78fea53c"},
     {file = "PyYAML-6.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:77f396e6ef4c73fdc33a9157446466f1cff553d979bd00ecb64385760c6babdc"},
@@ -4070,8 +4091,8 @@ streamlit-ace = [
     {file = "streamlit_ace-0.1.1.tar.gz", hash = "sha256:1852fa19707685fd4241be9256c1ab1a89da4a3b8c28ab286e3bff122d3a1686"},
 ]
 tabulate = [
-    {file = "tabulate-0.8.10-py3-none-any.whl", hash = "sha256:0ba055423dbaa164b9e456abe7920c5e8ed33fcc16f6d1b2f2d152c8e1e8b4fc"},
-    {file = "tabulate-0.8.10.tar.gz", hash = "sha256:6c57f3f3dd7ac2782770155f3adb2db0b1a269637e42f27599925e64b114f519"},
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
 ]
 thinc = [
     {file = "thinc-8.1.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b23e9ae90cdd368de5da802472ca893ef06b8874a5d5c9e058978b975bdaabc8"},
@@ -4153,6 +4174,10 @@ tzdata = [
 tzlocal = [
     {file = "tzlocal-4.2-py3-none-any.whl", hash = "sha256:89885494684c929d9191c57aa27502afc87a579be5cdd3225c77c463ea043745"},
     {file = "tzlocal-4.2.tar.gz", hash = "sha256:ee5842fa3a795f023514ac2d801c4a81d1743bbe642e3940143326b3a00addd7"},
+]
+Unidecode = [
+    {file = "Unidecode-1.3.6-py3-none-any.whl", hash = "sha256:547d7c479e4f377b430dd91ac1275d593308dce0fc464fb2ab7d41f82ec653be"},
+    {file = "Unidecode-1.3.6.tar.gz", hash = "sha256:fed09cf0be8cf415b391642c2a5addfc72194407caee4f98719e40ec2a72b830"},
 ]
 urllib3 = [
     {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},
