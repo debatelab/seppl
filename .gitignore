@@ -1,5 +1,6 @@
 # Notes
 NOTEPAD.md
+kit_ars1_ws2223.csv
 
 # Prover
 .prover
@@ -9,6 +10,9 @@ NOTEPAD.md
 
 # Firestore
 seppl-deepa2-firebase-key.json
+
+# Github
+github_tokens.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
