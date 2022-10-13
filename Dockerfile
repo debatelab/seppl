@@ -17,7 +17,7 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 # --------------- Install poetry and package using `pip` ---------------
 
 # System deps:
-RUN pip install poetry==1.1.12
+RUN pip install poetry==1.2.1
 RUN poetry install --no-interaction --no-ansi
 RUN poetry self add poetry-dotenv-plugin
 
