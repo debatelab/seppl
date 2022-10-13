@@ -1,4 +1,6 @@
-FROM python:3.9-slim
+FROM ubunutu:22.04
+
+# python:3.9-slim
 
 LABEL maintainer "Gregor Betz  <gregor.betz@gmail.com>"
 
