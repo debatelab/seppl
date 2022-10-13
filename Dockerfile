@@ -47,4 +47,4 @@ EXPOSE 8080
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-CMD ["poetry", "run", "streamlit", "run", "--server.port", "8501", "seppl/streamlit_app2.py"]
+CMD ["poetry", "run", "streamlit", "run", "--server.port", "8080", "seppl/streamlit_app2.py"]
