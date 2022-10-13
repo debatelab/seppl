@@ -1,4 +1,4 @@
-FROM ubunutu:22.04
+FROM ubuntu:22.04
 
 # python:3.9-slim
 
