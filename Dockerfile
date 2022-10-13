@@ -26,9 +26,14 @@ RUN poetry install --no-interaction --no-ansi --without dev
 
 # --------------- Configure Prover ---------------
 
-RUN sh install_prover.sh
-RUN mkdir -p /root/.prover
-COPY ./.prover /root/.prover
+#RUN sh install_prover.sh
+RUN mkdir .prover
+RUN tar -xvzf LADR-2009-11A.tar.gz
+RUN cd LADR-2009-11A && make all
+RUN make test1
+RUN cd ..
+RUN cp -r LADR-2009-11A/* .prover
+RUN rm -r LADR-2009-11A
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit
