@@ -5,10 +5,10 @@ cd .prover
 
 if [ -e LADR-2009-11A.tar.gz ]
 then
-    echo "archive exists"
-else
     echo "download tar"
     wget https://www.cs.unm.edu/~mccune/prover9/download/LADR-2009-11A.tar.gz
+else
+    echo "archive exists"
 fi
 ls 
 

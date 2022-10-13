@@ -18,8 +18,8 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 
 # System deps:
 RUN pip install poetry==1.2.1
-RUN poetry install --no-interaction --no-ansi
 RUN poetry self add poetry-dotenv-plugin
+RUN poetry install --no-interaction --no-ansi --without dev
 
 
 # --------------- Configure Prover ---------------
