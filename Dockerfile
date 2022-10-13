@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 # python:3.9-slim
 
@@ -26,13 +26,7 @@ RUN poetry install --no-interaction --no-ansi --without dev
 
 # --------------- Configure Prover ---------------
 
-#RUN sh install_prover.sh
-RUN mkdir .prover
-RUN tar -xvzf LADR-2009-11A.tar.gz
-RUN cd LADR-2009-11A && make all
-RUN make test1
-RUN cd ..
-RUN cp -r LADR-2009-11A/* .prover
+RUN apt install -y prover9
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit
