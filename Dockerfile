@@ -33,7 +33,6 @@ RUN cd LADR-2009-11A && make all
 RUN make test1
 RUN cd ..
 RUN cp -r LADR-2009-11A/* .prover
-RUN rm -r LADR-2009-11A
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit
