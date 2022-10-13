@@ -26,7 +26,7 @@ RUN poetry install --no-interaction --no-ansi --without dev
 
 # --------------- Configure Prover ---------------
 
-RUN apt install -y prover9
+RUN cd LADR-2009-11A && make all && make test1
 
 # --------------- Configure Streamlit ---------------
 RUN mkdir -p /root/.streamlit
