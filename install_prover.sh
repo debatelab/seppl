@@ -3,8 +3,13 @@ echo
 mkdir .prover
 cd .prover
 
-echo "download tar"
-wget https://www.cs.unm.edu/~mccune/prover9/download/LADR-2009-11A.tar.gz
+if [ -e LADR-2009-11A.tar.gz ]
+then
+    echo "archive exists"
+else
+    echo "download tar"
+    wget https://www.cs.unm.edu/~mccune/prover9/download/LADR-2009-11A.tar.gz
+fi
 ls 
 
 echo "unzip"
