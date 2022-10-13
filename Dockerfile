@@ -29,7 +29,12 @@ RUN poetry install --no-interaction --no-ansi --without dev
 RUN cd LADR-2009-11A && make all && make test1
 RUN echo 'PROVER9="LADR-2009-11A/bin/prover9"' >> .env
 
+# --------------- Configure Firebase ---------------
+
+COPY ./seppl-deepa2-firebase-key.json /seppl-deepa2-firebase-key.json
+
 # --------------- Configure Streamlit ---------------
+
 RUN mkdir -p /root/.streamlit
 
 COPY ./.streamlit/secrets.toml /root/.streamlit/secrets.toml

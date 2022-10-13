@@ -7,7 +7,7 @@ AI-Powered E-Learning App for Argument Analysis
 docker build -t seppl:latest .
 
 # run app
-docker run -ti --rm --expose 8051 --network host seppl:latest
+docker run -ti --rm --expose 8080 --network host seppl:latest
 ```
 
 Access docker via bash:
