@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import functools
 import logging
 import json
 import re
@@ -187,24 +188,12 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
             "parameters": kwargs,
         }
         data = json.dumps(payload)
-        # send http request
-        logging.debug("Sending http request: %s", data)
-        response = requests.request(
-            "POST",
-            self.textgen_server_url,
-            headers=self.headers,
+        result_json = self._query_server(
+            server_url=self.textgen_server_url,
             data=data,
-            timeout=self.timeout,
         )
-        # decode and unpack response
-        content = response.content.decode("utf-8")
-        logging.debug("Received response: %s", content)
-        try:
-            # as json
-            result_json = json.loads(content)
-        except Exception:
-            result_json = {"error": content}
-
+        if not result_json:
+            return [{"error": "generation failed, no result"}]
         return [result_json]
 
     def loss(self, inputs: Dict[str,str], mode: str) -> Optional[float]:
@@ -220,11 +209,26 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
             "parameters": {},
         }
         data = json.dumps(payload)
+        result_json = self._query_server(
+            server_url=self.loss_server_url,
+            data=data,
+        )
+        if not result_json:
+            return None
+        if not "loss" in result_json:
+            return None
+
+        return float(result_json["loss"])
+
+
+    @functools.lru_cache(maxsize=128)
+    def _query_server(self, server_url: str, data: str) -> Dict[Any, Any]:
+        """query server"""
         # send http request
         logging.info("Sending http request: %s", data)
         response = requests.request(
             "POST",
-            self.loss_server_url,
+            server_url,
             headers=self.headers,
             data=data,
             timeout=self.timeout,
@@ -238,8 +242,7 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
         except Exception:
             result_json = {"error": content}
 
-        return float(result_json.get("loss"))
-
+        return result_json
 
 
 _INFERENCE_PIPELINES = {
