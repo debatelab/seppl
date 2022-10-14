@@ -84,7 +84,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
                     context=[
                         (
                             f"SEPPL has identified the following *{InputOption.da2_field_name(field)}* "
-                            f"and marked them in the source text. Feel free to adopt and revise."
+                            f"and marked them in the source text. Feel free to adapt these suggestions."
                         )
                     ],
                     question=f"Please add or revise {InputOption.da2_field_name(field)}.",
