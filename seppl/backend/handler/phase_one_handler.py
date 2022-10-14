@@ -81,6 +81,12 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
                     initial_quotes=quotes,
                     inference_rater=inference_rater,
                     da2_field=field,
+                    context=[
+                        (
+                            f"SEPPL has identified the following *{InputOption.da2_field_name(field)}* "
+                            f"and marked them in the source text. Feel free to adopt and revise."
+                        )
+                    ],
                     question=f"Please add or revise {InputOption.da2_field_name(field)}.",
                 )
             )
