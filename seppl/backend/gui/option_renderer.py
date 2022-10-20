@@ -229,7 +229,7 @@ class TextOptionStRenderer(InputOptionStRenderer):
                 "(5) final conclusion  \n",
                 language='markdown',
                 theme='dawn',
-                font_size=14,
+                font_size=16,
                 wrap=True,
                 show_gutter=False,
                 show_print_margin=False,
