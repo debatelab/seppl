@@ -506,8 +506,13 @@ class ReasConjCohRecoScore(Metric):
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
         cues = Util.available_cues(da2item=self.da2item)
+        qa = []
+        if self.da2item.reasons:
+            qa.append("r")
+        if self.da2item.conjectures:
+            qa.append("j")
         input_angles_base = [["s"]+list(ss) for ss in list(Util.powerset(cues))]
-        input_angles_rj = [ss+["r","j"] for ss in input_angles_base]
+        input_angles_rj = [ss+qa for ss in input_angles_base]
         modes = lambda input_angles: [f"{' + '.join(l)} => a" for l in input_angles]
         coheres = any(
             loss(mode_rj) <= loss(mode_base)
