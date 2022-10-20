@@ -1887,6 +1887,17 @@ python-versions = ">=3.6"
 streamlit = ">=0.63"
 
 [[package]]
+name = "streamlit-text-label"
+version = "0.1.1"
+description = "Components for labelling text document"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+streamlit = ">=0.63"
+
+[[package]]
 name = "tabulate"
 version = "0.9.0"
 description = "Pretty-print tabular data"
@@ -2175,7 +2186,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.11"
-content-hash = "3037e4969c4b6df393c8dd7d386ae5e796104510af6957448f40ec2ef4ca22f1"
+content-hash = "2872cd97405d671a489a73d82f8a1819ec67746632b696fbfe5bad6005e62e39"
 
 [metadata.files]
 aiohttp = [
@@ -4089,6 +4100,10 @@ streamlit = [
 streamlit-ace = [
     {file = "streamlit_ace-0.1.1-py3-none-any.whl", hash = "sha256:cdf908a90058fa831fb720d29e2aef35a0f5799eac33e2b2e58ba9f3631b1aa5"},
     {file = "streamlit_ace-0.1.1.tar.gz", hash = "sha256:1852fa19707685fd4241be9256c1ab1a89da4a3b8c28ab286e3bff122d3a1686"},
+]
+streamlit-text-label = [
+    {file = "streamlit_text_label-0.1.1-py3-none-any.whl", hash = "sha256:0ca1e1893a6d9f6447571c7d15adeffd211a7575aa17e5696d4c5c19a0a9aa2e"},
+    {file = "streamlit_text_label-0.1.1.tar.gz", hash = "sha256:d301d998211e72ddb151d3e16b0bb2e9659821341ec41991be22720f504da1b1"},
 ]
 tabulate = [
     {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
