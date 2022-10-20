@@ -107,7 +107,7 @@ class ProjectStRenderer:
     def __init__(self, project: Project):
         self._project: Project = project
         self._query: Optional[UserInput] = None
-
+        self.option_placeholder = None
 #    def submit(self, query):
 #        """update"""
 #        self._project.update(query)
@@ -115,6 +115,8 @@ class ProjectStRenderer:
     def submit(self, query_factory: Callable, raw_input: str):
         """update"""
         self._project.update(query_factory(raw_input))
+        if self.option_placeholder:
+            self.option_placeholder.empty()
 
 
     def render(self):
@@ -151,9 +153,11 @@ class ProjectStRenderer:
             self.submit
         )
         # render options
-        option_gui.render()
-        if len(input_options)>1:
-            st.button("Ask me something different", on_click = self._project.toggle_visible_option)
+        self.option_placeholder = st.empty()
+        with self.option_placeholder.container():
+            option_gui.render()
+            if len(input_options)>1:
+                st.button("Ask me something different", on_click = self._project.toggle_visible_option)
 
 
         # debugging: sofa info
