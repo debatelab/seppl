@@ -222,7 +222,7 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
         if alternative_reco:
             options += [TextOption(
                 context=["Based on your hints, SEPPL has come up with "
-                "an alternative reconstruction. Feel free to use it."],
+                "its own reconstruction. Feel free to use it."],
                 question="Can you further improve it?",
                 initial_text=alternative_reco,
                 da2_field="argdown_reconstruction",
