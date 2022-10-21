@@ -1,11 +1,12 @@
 """Phase One Handlers"""
 
 from __future__ import annotations
+from dataclasses import asdict
 import logging
-from typing import List
+from typing import List, Tuple
 
 import deepa2
-from deepa2.parsers import DeepA2Parser, DeepA2Layouter
+from deepa2.parsers import DeepA2Parser, DeepA2Layouter, Argument
 
 
 from seppl.backend.handler import (
@@ -16,6 +17,7 @@ from seppl.backend.handler import (
 from seppl.backend.inputoption import (
     InputOption,
     QuoteOption,
+    ReasonsConjecturesOption,
     TextOption,
     OptionFactory,
 )
@@ -62,6 +64,7 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
         """
         options: List[InputOption] = []
         formatted_da2item = DeepA2Layouter().format(request.new_da2item)
+        quotes = {}
         for field, angle in zip(["reasons","conjectures"],["r","j"]):
             outputs, inference_rater = self._inference.generate(
                 inputs=formatted_da2item,
@@ -69,27 +72,47 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
             )
             if "generated_text" in outputs[0]:
                 logging.info("PhaseOneHandler: generated quotes (%s) = %s", field, outputs[0]["generated_text"])
-                quotes = DeepA2Parser.parse_quotes(
+                quotes[field] = DeepA2Parser.parse_quotes(
                     outputs[0]["generated_text"]
                 )
             else:
                 logging.warning("Generation failed for mode s+a => %s", angle)
 
-            options.append(
-                QuoteOption(
-                    source_text=request.new_da2item.source_text,
-                    initial_quotes=quotes,
-                    inference_rater=inference_rater,
-                    da2_field=field,
-                    context=[
-                        (
-                            f"SEPPL has identified the following *{InputOption.da2_field_name(field)}* "
-                            f"and marked them in the source text. Feel free to adapt these suggestions."
-                        )
-                    ],
-                    question=f"Please add or revise {InputOption.da2_field_name(field)}.",
-                )
+            #options.append(
+                #QuoteOption(
+                #    source_text=request.new_da2item.source_text,
+                #    initial_quotes=quotes,
+                #    inference_rater=inference_rater,
+                #    da2_field=field,
+                #    context=[
+                #        (
+                #            f"SEPPL has identified the following *{InputOption.da2_field_name(field)}* "
+                #            f"and marked them in the source text. Feel free to adapt these suggestions."
+                #        )
+                #    ],
+                #    question=f"Please add or revise {InputOption.da2_field_name(field)}.",
+                #)
+            #)
+        premise_labels, conclusion_labels = self.get_premise_conclusion_labels(request)
+
+        options.append(
+            ReasonsConjecturesOption(
+                source_text=request.new_da2item.source_text,
+                initial_reasons=[asdict(r) for r in quotes["reasons"]],
+                initial_conjectures=[asdict(j) for j in quotes["conjectures"]],
+                premise_labels=premise_labels,
+                conclusion_labels=conclusion_labels,
+                inference_rater=inference_rater,
+                context=[
+                    (
+                        f"SEPPL has identified the following reasons and conjectures "
+                        f"and marked them in the source text. Feel free to adapt these suggestions."
+                    )
+                ],
+                question=f"Please add or revise reasons and conjectures.",
             )
+        )
+
         logging.info(" PhaseOneHandlerNoRJ created input_options: %s", options)
         return options
 
@@ -118,13 +141,24 @@ class PhaseOneHandlerRNotAlgn(PhaseOneHandler):
     def get_input_options(self, request: Request) -> List[InputOption]:
         options: List[InputOption] = []
         da2item = request.new_da2item
+        initial_reasons = [asdict(r) for r in da2item.reasons] if da2item.reasons else []
+        initial_conjectures = [asdict(j) for j in da2item.conjectures] if da2item.conjectures else []
+        premise_labels, conclusion_labels = self.get_premise_conclusion_labels(request)
         options.append(
-            QuoteOption(
-                source_text=da2item.source_text,
-                initial_quotes=da2item.reasons,
-                da2_field="reasons",
-                question="Please add or revise reasons given you argument reconstruction.",
+            ReasonsConjecturesOption(
+                source_text=request.new_da2item.source_text,
+                initial_reasons=initial_reasons,
+                initial_conjectures=initial_conjectures,
+                premise_labels=premise_labels,
+                conclusion_labels=conclusion_labels,
+                question=f"Please add or revise __reasons__ given your argument reconstruction.",
             )
+            #QuoteOption(
+            #    source_text=da2item.source_text,
+            #    initial_quotes=da2item.reasons,
+            #    da2_field="reasons",
+            #    question="Please add or revise reasons given you argument reconstruction.",
+            #)
         )
         # Manually revise current reconstruction?
         options += OptionFactory.create_text_options(
@@ -160,13 +194,24 @@ class PhaseOneHandlerJNotAlgn(PhaseOneHandler):
     def get_input_options(self, request: Request) -> List[InputOption]:
         options: List[InputOption] = []
         da2item = request.new_da2item
+        initial_reasons = [asdict(r) for r in da2item.reasons] if da2item.reasons else []
+        initial_conjectures = [asdict(j) for j in da2item.conjectures] if da2item.conjectures else []
+        premise_labels, conclusion_labels = self.get_premise_conclusion_labels(request)
         options.append(
-            QuoteOption(
-                source_text=da2item.source_text,
-                initial_quotes=da2item.conjectures,
-                da2_field="conjectures",
-                question="Please add or revise conjectures given you argument reconstruction.",
+            ReasonsConjecturesOption(
+                source_text=request.new_da2item.source_text,
+                initial_reasons=initial_reasons,
+                initial_conjectures=initial_conjectures,
+                premise_labels=premise_labels,
+                conclusion_labels=conclusion_labels,
+                question=f"Please add or revise __conjectures__ given your argument reconstruction.",
             )
+            # QuoteOption(
+            #     source_text=da2item.source_text,
+            #     initial_quotes=da2item.conjectures,
+            #     da2_field="conjectures",
+            #     question="Please add or revise conjectures given you argument reconstruction.",
+            # )
         )
         # Manually revise current reconstruction?
         options += OptionFactory.create_text_options(
@@ -229,10 +274,18 @@ class PhaseOneHandlerCatchAll(PhaseOneHandler):
                 inference_rater=inference_rater,
             )]
         # Manually revise current quotes?
-        options += OptionFactory.create_quote_options(
-            da2_fields=["reasons", "conjectures"],
-            da2_item=request.new_da2item,
-            pre_initialized=True,
+        initial_reasons = [asdict(r) for r in request.new_da2item.reasons] if request.new_da2item.reasons else []
+        initial_conjectures = [asdict(j) for j in request.new_da2item.conjectures] if request.new_da2item.conjectures else []
+        premise_labels, conclusion_labels = self.get_premise_conclusion_labels(request)
+        options.append(
+            ReasonsConjecturesOption(
+                source_text=request.new_da2item.source_text,
+                initial_reasons=initial_reasons,
+                initial_conjectures=initial_conjectures,
+                premise_labels=premise_labels,
+                conclusion_labels=conclusion_labels,
+                question=f"Please add or revise annotations of reasons or conjectures.",
+            )
         )
         # Manually revise current cues or reconstruction?
         options += OptionFactory.create_text_options(

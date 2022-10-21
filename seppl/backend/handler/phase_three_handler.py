@@ -1,6 +1,7 @@
 """Phase Three Handlers"""
 
 from __future__ import annotations
+from dataclasses import asdict
 import logging
 from typing import List
 
@@ -16,6 +17,7 @@ from seppl.backend.handler import (
 from seppl.backend.inputoption import (
     InputOption,
     OptionFactory,
+    ReasonsConjecturesOption,
 )
 
 DA2KEY = deepa2.DA2_ANGLES_MAP
@@ -59,10 +61,18 @@ class PhaseThreeHandlerCatchAll(PhaseThreeHandler):
         )
 
         # reasons and conjectures
-        options += OptionFactory.create_quote_options(
-            da2_fields=[DA2KEY.r, DA2KEY.j],
-            da2_item=request.new_da2item,
-            pre_initialized=True,
+        initial_reasons = [asdict(r) for r in request.new_da2item.reasons] if request.new_da2item.reasons else []
+        initial_conjectures = [asdict(j) for j in request.new_da2item.conjectures] if request.new_da2item.conjectures else []
+        premise_labels, conclusion_labels = self.get_premise_conclusion_labels(request)
+        options.append(
+            ReasonsConjecturesOption(
+                source_text=request.new_da2item.source_text,
+                initial_reasons=initial_reasons,
+                initial_conjectures=initial_conjectures,
+                premise_labels=premise_labels,
+                conclusion_labels=conclusion_labels,
+                question=f"Please add or revise annotations of reasons or conjectures.",
+            )
         )
 
 

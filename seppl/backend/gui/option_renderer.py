@@ -3,12 +3,15 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import copy
+from dataclasses import asdict
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List, Dict
 
-from deepa2 import DA2_ANGLES_MAP, DeepA2Parser
+from deepa2 import DA2_ANGLES_MAP, DeepA2Parser, QuotedStatement
 import streamlit as st
 from streamlit_ace import st_ace
+from streamlit_text_label import Selection, label_select
 
 from seppl.backend.userinput import UserInput, INPUT_TYPES
 from seppl.backend.inputoption import (
@@ -16,6 +19,7 @@ from seppl.backend.inputoption import (
     InputOption,
     TextOption,
     QuoteOption,
+    ReasonsConjecturesOption,
 )
 
 
@@ -41,7 +45,7 @@ class InputOptionStRenderer(ABC):
     #    """returns currently selcted / provided input"""
     #    return self._input
 
-    def query(self, raw_input: str) -> UserInput:
+    def query(self, raw_input: Any) -> UserInput:
         """constructs and returns user_input to-be passed to submit function"""
         user_input = INPUT_TYPES[self._input_option.da2_field](
             raw_input,
@@ -78,6 +82,11 @@ class InputOptionStRenderer(ABC):
                 submit=submit,
                 input_option=option
             )
+        elif isinstance(option, ReasonsConjecturesOption):
+            option_gui = ReasonsConjecturesOptionStRenderer(
+                submit=submit,
+                input_option=option
+            )
         else:
             raise ValueError(f"Cannot render unknown option type: {type(option)}")
         return option_gui
@@ -107,6 +116,152 @@ class ChoiceOptionStRenderer(InputOptionStRenderer):
                         raw_input = answer,
                     )
                 )
+
+
+class ReasonsConjecturesOptionStRenderer(InputOptionStRenderer):
+    """renders a ReasonsConjecturesOption"""
+
+    _input_option: ReasonsConjecturesOption
+
+    def ready(self, rj_input: Dict[str, List[Dict[str, Any]]]) -> bool:
+        return True
+
+    def question(self) -> str:
+        """postprocesses and formats question"""
+        return (f"{self._input_option.question} (N.B.: Click 'update' before submitting.)")
+
+    def initial_selection(self) -> List[Selection]:
+        """constructs initial selection from initial reasons and conjectures"""
+        body = self._input_option.source_text
+        if not body:
+            return []
+        labels = self.get_labels()
+        selected = []
+        if self._input_option.initial_reasons:
+            for quote in self._input_option.initial_reasons:
+                reason = QuotedStatement(**quote)
+                if reason.text not in body:
+                    continue;
+                label = f"P{reason.ref_reco}"
+                if not label in labels:
+                    label = "Generic Premise"
+                if reason.starts_at >= 0:
+                    start = reason.starts_at
+                else:
+                    start = body.find(reason.text)
+                selected.append(
+                    Selection(
+                        start=start,
+                        end=start+len(reason.text),
+                        text=reason.text,
+                        labels=[label]
+                    )
+                )
+        if self._input_option.initial_conjectures:
+            for quote in self._input_option.initial_conjectures:
+                conjecture = QuotedStatement(**quote)
+                if conjecture.text not in body:
+                    continue;
+                label = f"C{conjecture.ref_reco}"
+                if not label in labels:
+                    label = "Generic Conclusion"
+                if conjecture.starts_at >= 0:
+                    start = conjecture.starts_at
+                else:
+                    start = body.find(conjecture.text)
+                selected.append(
+                    Selection(
+                        start=start,
+                        end=start+len(conjecture.text),
+                        text=conjecture.text,
+                        labels=[label]
+                    )
+                )
+
+        return selected
+
+    def get_labels(self) -> List[str]:
+        """constructs labels"""
+        labels = ["Generic Premise"]
+        if self._input_option.premise_labels:
+            labels += [f"P{i}" for i in self._input_option.premise_labels]
+        labels += ["Generic Conclusion"]
+        if self._input_option.conclusion_labels:
+            labels += [f"C{i}" for i in self._input_option.conclusion_labels]        
+        return labels
+
+    def postprocess_input(self, selected: List[Selection]) -> Dict[str, List[Dict[str, Any]]]:
+        """constructs reasons and conjectures from input selection"""
+        selected = copy.deepcopy(selected)
+        selected_reasons = [
+            s for s in selected 
+            if s.labels[0][0] == "P" or "Generic Premise" in s.labels
+        ]
+        selected_reasons = sorted(selected_reasons, key=lambda s: s.start)
+        reason_statements: List[Dict[str, Any]] = []
+        for selection in selected_reasons:
+            reason_statements.append(
+                asdict(QuotedStatement(
+                    ref_reco = -1 if selection.labels[0] == "Generic Premise" else int(selection.labels[-1][1:]),
+                    starts_at = selection.start,
+                    text = selection.text,
+                ))
+            )
+
+        selected_conjectures = [
+            s for s in selected 
+            if s.labels[0][0] == "C" or "Generic Conclusion" in s.labels
+        ]
+        selected_conjectures = sorted(selected_conjectures, key=lambda s: s.start)
+        conjecture_statements: List[Dict[str, Any]] = []
+        for selection in selected_conjectures:
+            conjecture_statements.append(
+                asdict(QuotedStatement(
+                    ref_reco = -1 if selection.labels[0] == "Generic Conclusion" else int(selection.labels[-1][1:]),
+                    starts_at = selection.start,
+                    text = selection.text,
+                ))
+            )
+
+        return {
+            "reasons": reason_statements,
+            "conjectures": conjecture_statements,
+        }
+
+
+    def render(self):
+        """renders reasons and conjectures annotations as streamlit gui"""
+
+        # context
+        if self._input_option.context:
+            for context_item in self._input_option.context:
+                st.write(context_item)        
+
+        # question
+        st.write(f"*{self.question()}*")
+        selected = label_select(
+            body=self._input_option.source_text,
+            labels=self.get_labels(),
+            selections=self.initial_selection(),
+        )
+
+        # postprocess_input
+        rj_input = self.postprocess_input(selected)
+
+        # inference rater
+        if self._input_option.inference_rater:
+            st.caption("[Display InferenceRater]")
+
+        # submit
+        st.button(
+            "Submit",
+            on_click = self._submit,
+            kwargs = dict(
+                query_factory = self.query,
+                raw_input = rj_input,
+            ),
+            disabled=not self.ready(rj_input)
+        )
 
 
 class TextOptionStRenderer(InputOptionStRenderer):

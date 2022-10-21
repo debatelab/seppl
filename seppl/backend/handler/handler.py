@@ -4,10 +4,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import logging
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Tuple
 from dataclasses import dataclass
 
 from deepa2 import DeepA2Item, DA2_ANGLES_MAP
+from deepa2.parsers import Argument
 
 from seppl.backend.inference import AbstractInferencePipeline
 import seppl.backend.project as pjt
@@ -169,3 +170,21 @@ class AbstractUserInputHandler(Handler):
             return self._next_handler.handle(request)
 
         raise Exception("No handler responsible for request: %s", request)
+
+
+    def get_premise_conclusion_labels(self, request) -> Tuple[List[str],List[str]]:
+        """returns labels for premises and conclusions"""        
+        parsed_argdown : Argument = request.metrics.from_cache("parsed_argdown")
+        if not parsed_argdown:
+            logging.error("PhaseOneHandlerNoRJ: no parsed argdown")
+            return [],[]
+
+        premise_labels = [
+            statement.label for statement in parsed_argdown.statements
+            if not statement.is_conclusion
+        ]
+        conclusion_labels = [
+            statement.label for statement in parsed_argdown.statements
+            if statement.is_conclusion
+        ]
+        return premise_labels, conclusion_labels

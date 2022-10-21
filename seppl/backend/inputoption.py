@@ -110,6 +110,41 @@ class TextOption(InputOption):
 
 
 @dataclass
+class ReasonsConjecturesOption(InputOption):
+    """
+    represents an option for annotating
+    a given source text with reasons and conjectures
+    """
+
+    source_text: Optional[str] = None
+    initial_reasons: Optional[List[Dict[str, Any]]] = None
+    initial_conjectures: Optional[List[Dict[str, Any]]] = None
+    premise_labels: Optional[List[str]] = None
+    conclusion_labels: Optional[List[str]] = None
+    da2_field: str = "reasons_conjectures"
+
+    @staticmethod
+    def quotes_as_dicts(quotes: List[QuotedStatement]) -> List[Dict[str, Any]]:
+        """returns a list of dicts from a list of QuotedStatement"""
+        return [asdict(quote) for quote in quotes]
+
+    @staticmethod
+    def dicts_as_quotes(data: Optional[List[Dict[str, Any]]]) -> List[QuotedStatement]:
+        """returns a list of QuotedStatement from a list of dicts"""
+        if not data:
+            return []
+        return [QuotedStatement(**quote) for quote in data]
+
+    def reasons(self) -> List[QuotedStatement]:
+        """returns a list of QuotedStatement from the initial_reasons """
+        return self.dicts_as_quotes(self.initial_reasons)
+
+    def conjectures(self) -> List[QuotedStatement]:
+        """returns a list of QuotedStatement from the initial_conjectures"""
+        return self.dicts_as_quotes(self.initial_conjectures)
+
+
+@dataclass
 class QuoteOption(InputOption):
     """
     represents a quote option for annotating
@@ -217,7 +252,9 @@ class OptionFactory():
             return TextOption(**data)
         if option_class == "QuoteOption":
             return QuoteOption(**data)
-        raise ValueError(f"OptionFactory: unknown class {data['class']}")
+        if option_class == "ReasonsConjecturesOption":
+            return ReasonsConjecturesOption(**data)
+        raise ValueError(f"OptionFactory: unknown class {option_class}")
 
     @staticmethod
     def create_text_options(

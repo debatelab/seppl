@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Union, List, Optional, Tuple
+import logging
+from typing import Any, Dict, Union, List, Optional, Tuple
 from deepa2 import (
     DeepA2Item,
     ArgdownStatement,
@@ -13,7 +14,7 @@ from deepa2 import (
 
 import bs4
 
-from seppl.backend.inputoption import QuoteOption
+from seppl.backend.inputoption import QuoteOption, ReasonsConjecturesOption
 
 
 
@@ -22,10 +23,10 @@ class UserInput(ABC):
 
     def __init__(
         self,
-        raw_input: str,
+        raw_input: Any,
         da2_field: str,
     ):
-        self._raw_input: str = raw_input
+        self._raw_input: Any = raw_input
         self.da2_field: str = da2_field
 
     def cast(self) -> Any:
@@ -36,11 +37,13 @@ class UserInput(ABC):
         """updates the da2item (no copy!) given the current raw input"""
         setattr(da2_item, self.da2_field, self.cast())
 
-    def stripped_input(self) -> str:
-        """strips input from html tags and trailing space"""
-        stripped_input = self._raw_input.strip()
-        soup = bs4.BeautifulSoup(stripped_input, features="html.parser")
-        return soup.get_text()
+    def stripped_input(self) -> Any:
+        """strips text input from html tags and trailing space"""
+        if isinstance(self._raw_input, str):
+            stripped_input = self._raw_input.strip()
+            soup = bs4.BeautifulSoup(stripped_input, features="html.parser")
+            return soup.get_text()
+        return self._raw_input
 
 class ArgdownInput(UserInput):
     """argdown input by user"""
@@ -60,6 +63,34 @@ class CueInput(UserInput):
         else:
             # minimal preprocessing
             return self.stripped_input()
+
+
+
+class ReasonsConjecturesInput(UserInput):
+    """input by user for complete annotation of source_text 
+    (reasons and conjectures)"""
+
+    _raw_input: Dict[str, List[Dict[str,Any]]]
+
+    def cast(self) -> Tuple[List[QuotedStatement],List[QuotedStatement]]:
+        """casts raw input as components of da2item"""
+        reasons = ReasonsConjecturesOption.dicts_as_quotes(
+            self._raw_input.get("reasons",[])
+        )       
+        conjectures = ReasonsConjecturesOption.dicts_as_quotes(
+            self._raw_input.get("conjectures",[])
+        )
+        return reasons, conjectures
+
+    def update_da2item(self, da2_item: DeepA2Item = None) -> Any:
+        """updates the da2item (no copy!) given the current raw input"""
+        reasons, conjectures = self.cast()
+        if da2_item:
+            da2_item.reasons = reasons
+            da2_item.conjectures = conjectures
+        else:
+            logging.warning("ReasonsConjecturesInput: no da2_item given")
+
 
 
 
@@ -113,6 +144,7 @@ INPUT_TYPES = {
 
     "reasons": QuoteInput,
     "conjectures": QuoteInput,
+    "reasons_conjectures": ReasonsConjecturesInput,
 
     "premises_formalized": FormalizationInput,
     "intermediary_conclusions_formalized": FormalizationInput,
