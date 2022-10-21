@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seppl"
-version = "0.1.0"
+version = "0.1.1dev"
 description = "AI-Powered E-Learning App for Argument Analysis"
 authors = ["Gregor Betz <gregor.betz@kit.edu>"]
 license = "APACHE 2.0"

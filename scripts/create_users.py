@@ -34,6 +34,7 @@ def create_user(
         "password": password,
         "organization": organization,
         "created": datetime.datetime.now().isoformat(),
+        "sofa_counter": 0,
     })
 
 
@@ -64,6 +65,7 @@ ateam = [
     "christian.seidel",
     "georg.brun",
     "basti.cacean",
+    "david-lanius",
 ]
 # %%
 

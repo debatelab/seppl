@@ -400,9 +400,13 @@ class FirestoreProjectStore(AbstractProjectStore):
         }
         logging.info("FirestoreProjectStore: Saving sofa %s in store.", data)
         sofa_ref.set(data)
-        # increment sofa counter
+        # increment project sofa counter
         project_ref = self.db.collection(f"users/{self._user_id}/projects").document(self._project_id)
         project_ref.update({"sofa_counter": firestore.Increment(1)})
+        # increment user sofa counter
+        user_ref = self.db.collection(f"users").document(self._user_id)
+        user_ref.update({"sofa_counter": firestore.Increment(1)})
+
 
     def list_projects(self) -> List[str]:
         """list all projects of current user"""
@@ -474,9 +478,13 @@ class FirestoreProjectStore(AbstractProjectStore):
 
     def get_user_metrics(self) -> Dict[str, Any]:
         """get aggregate metrics for current user"""
-        metrics_user = self.db.collection("metrics").where(u'user_id', u'==', self._user_id).stream()
-        count_mx = 0
-        for mx in metrics_user:
-            count_mx += 1
-        return {"count_metrics": count_mx}
+        #metrics_user = self.db.collection("metrics").where(u'user_id', u'==', self._user_id).stream()
+        #count_mx = 0
+        #for mx in metrics_user:
+        #    count_mx += 1
+                # get sofa counter
+        user_ref = self.db.collection(f"users").document(self._user_id)
+        counter = user_ref.get().to_dict().get("sofa_counter")
+
+        return {"count_metrics": counter}
 
