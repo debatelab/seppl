@@ -124,6 +124,14 @@ class ReasonsConjecturesOptionStRenderer(InputOptionStRenderer):
     _input_option: ReasonsConjecturesOption
 
     def ready(self, rj_input: Dict[str, List[Dict[str, Any]]]) -> bool:
+        return bool(rj_input)
+
+    def _non_overlapping_selections(self, selected: List[Selection]) -> bool:
+        """checks if selections don't overlap"""
+        selected = sorted(selected, key=lambda s: s.start)
+        for i in range(len(selected) - 1):
+            if selected[i].end > selected[i + 1].start:
+                return False
         return True
 
     def question(self) -> str:
@@ -192,6 +200,9 @@ class ReasonsConjecturesOptionStRenderer(InputOptionStRenderer):
 
     def postprocess_input(self, selected: List[Selection]) -> Dict[str, List[Dict[str, Any]]]:
         """constructs reasons and conjectures from input selection"""
+        # check if selections are not overlapping
+        if not self._non_overlapping_selections(selected):
+            return({})
         selected = copy.deepcopy(selected)
         selected_reasons = [
             s for s in selected 
@@ -251,6 +262,10 @@ class ReasonsConjecturesOptionStRenderer(InputOptionStRenderer):
         # inference rater
         if self._input_option.inference_rater:
             st.caption("[Display InferenceRater]")
+
+        # warning of overlapping selections
+        if not self.ready(rj_input):
+            st.warning("Overlapping selections are not allowed.")
 
         # submit
         st.button(
