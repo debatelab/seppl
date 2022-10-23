@@ -427,10 +427,12 @@ class ReasonsAlignedScore(ArgdownMetric):
     whether they reference premises"""
 
     def calculate(self):
-        if not self.da2item.reasons or not self.da2item.argdown_reconstruction:
+        if not self.da2item.argdown_reconstruction:
             return None
         if not self._cache["parsed_argdown"]:
             return 0
+        if not self.da2item.reasons:  # if there are no reasons, all reasons are aligned
+            return 1
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for reason in self.da2item.reasons:
@@ -461,10 +463,12 @@ class ConjecturesAlignedScore(ArgdownMetric):
     whether they reference a final or intermediary conclusion"""
 
     def calculate(self):
-        if not self.da2item.conjectures or not self.da2item.argdown_reconstruction:
+        if not self.da2item.argdown_reconstruction:
             return None
         if not self._cache["parsed_argdown"]:
             return 0
+        if not self.da2item.conjectures:  # if there are no conjectures, all conjectures are aligned
+            return 1
         parsed_argdown: Argument = self._cache["parsed_argdown"]
         count_aligned = 0
         for conjecture in self.da2item.conjectures:
@@ -510,7 +514,9 @@ class ReasConjCohRecoScore(Metric):
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
         cues = Util.available_cues(da2item=self.da2item)
-        qa = []
+        if self.da2item.conclusion and "c" not in cues:
+            cues.append("c")
+        qa = []  # available quotes
         if self.da2item.reasons:
             qa.append("r")
         if self.da2item.conjectures:
