@@ -311,14 +311,14 @@ class RecoCohSourceScore(ArgdownMetric):
             return 0
         # check condition 1
         ## copy da2item and replace argdown with default reconstruction 
-        default_inputs = deepcopy(dataclasses.asdict(self.da2item))
+        default_inputs = deepcopy(self.formatted_da2item)
         default_inputs.update(
             {
                 "argdown_reconstruction": self._cache["default_reconstruction"]
             }
         )
         default_loss = self._inference.loss(inputs=default_inputs, mode="s => a")
-        inputs = dataclasses.asdict(self.da2item)
+        inputs = self.formatted_da2item
         current_loss = self._inference.loss(inputs=inputs, mode="s => a")
         if  current_loss <= default_loss:
             return 1
@@ -353,7 +353,10 @@ class RecoCohSourceScore(ArgdownMetric):
             self._cache["default_reconstruction"] = "default reconstruction"
             if self._inference:
                 output, _ = self._inference.generate(
-                    dataclasses.asdict(da2item),
+                    inputs={
+                        "source_text": da2item.source_text,
+                        "argdown_reconstruction": da2item.argdown_reconstruction
+                    },
                     mode="s => a"
                 )
                 if output:
@@ -503,6 +506,7 @@ class ReasConjCohRecoScore(Metric):
         ):
             return None
 
+        logging.info("calculating ReasConjCohRecoScore")
         inputs = self.formatted_da2item
         loss = lambda mode: self._inference.loss(inputs=inputs, mode=mode)
         cues = Util.available_cues(da2item=self.da2item)
@@ -514,6 +518,7 @@ class ReasConjCohRecoScore(Metric):
         input_angles_base = [["s"]+list(ss) for ss in list(Util.powerset(cues))]
         input_angles_rj = [ss+qa for ss in input_angles_base]
         modes = lambda input_angles: [f"{' + '.join(l)} => a" for l in input_angles]
+        logging.info(f"modes to compare: {list(zip(modes(input_angles_rj),modes(input_angles_base)))}")
         coheres = any(
             loss(mode_rj) <= loss(mode_base)
             for mode_rj, mode_base

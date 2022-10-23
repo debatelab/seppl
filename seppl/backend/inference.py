@@ -96,6 +96,14 @@ class AbstractInferencePipeline(ABC):
             prompt += f" {input_key}: {inputs[input_key]}"
         return prompt
 
+    def preprocess_inputs(self, inputs: Dict[str,str]) -> Dict[str,str]:
+        """preprocess inputs by removing line breaks"""
+        inputs = {
+            key: (value.replace("\n", " ") if value is not None else value)
+            for key, value in inputs.items() 
+        }
+        return inputs
+
     @staticmethod
     def postprocess_argdown(argdown_reconstrcution:str) -> str:
         """
@@ -180,6 +188,8 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
 
     def _generate(self, inputs: Dict[str,str], mode: GenerativeMode, **kwargs) -> List[Dict[str,str]]:
         """generates output"""
+        # preprocess inputs
+        inputs = self.preprocess_inputs(inputs)
         # construct input text
         input_text = self.construct_prompt(inputs=inputs, mode=mode)
         # pack payload
@@ -198,10 +208,15 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
 
     def loss(self, inputs: Dict[str,str], mode: str) -> Optional[float]:
         """calculate loss"""
+        # preprocess inputs
+        inputs = self.preprocess_inputs(inputs)
         # construct input and target texts
+        logging.info("Calculating loss for plain mode: %s", mode)
         mode_gm: GenerativeMode = GenerativeMode.from_keys(mode)
+        logging.info(f"Parsed mode: input={mode_gm.input} and target={mode_gm.target}.")
         input_text = self.construct_prompt(inputs=inputs, mode=mode_gm)
         target_text = inputs[mode_gm.target]
+
         # pack payload
         payload = {
             "input": input_text,
