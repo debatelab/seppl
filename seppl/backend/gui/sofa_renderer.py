@@ -227,10 +227,10 @@ class SourceTextRenderer(AbstractDA2ItemRenderer):
         """get entities and colors for displacy"""
         # set up template and color profiles (different for reasons and conjectures)
         if type == "reasons":
-            lab_templ = "P%d"
+            lab_templ = "P%s"
             color_profile = "mako_r"
         elif type == "conjectures":
-            lab_templ = "C%d"
+            lab_templ = "C%s"
             color_profile = "rocket_r"
         else:
             return [], {}
@@ -243,7 +243,7 @@ class SourceTextRenderer(AbstractDA2ItemRenderer):
                 idx_start = source_text.index(quote.text, pointer)
                 idx_end = idx_start + len(quote.text)
                 pointer = idx_end
-                ref_reco = quote.ref_reco if quote.ref_reco else 0
+                ref_reco = quote.ref_reco if (quote.ref_reco and quote.ref_reco>0) else "??"
                 ents.append(
                     {
                         "start": idx_start,
