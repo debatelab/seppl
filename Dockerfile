@@ -13,7 +13,7 @@ COPY . ./
 # --------------- Install python  ---------------
 
 RUN apt update
-RUN apt install -y python3 python3-pip
+RUN apt install -y python3 python3-pip bash
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --user pipx
 RUN python3 -m pipx ensurepath
