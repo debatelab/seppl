@@ -748,10 +748,10 @@ class FormCohRecoScore(ArgdownMetric):
         fi = "+fi" if self.da2item.intermediary_conclusions_formalized else ""
         coheres = int(
             (loss("c+k => fc") <= loss("c => fc")) and
-            # (loss("p+k => fp") <= loss("p => fp")) and  # TODO: check this
-            (loss("i+k => fi") <= loss("i => fi") if (fi and has_interm_concl) else True) and
-            (loss(f"fp+k => p") <= loss(f"fc+k => p")) and
-            (loss(f"fi+k => i") <= loss(f"fc+k => i") if (fi and has_interm_concl) else True)
+            (loss("p+k => fp") <= loss("p => fp")) and  
+            (loss("i+k => fi") <= loss("i => fi") if (fi and has_interm_concl) else True) # and
+            # (loss(f"fp+k => p") <= loss(f"fc+k => p")) and # TODO: check this
+            # (loss(f"fi+k => i") <= loss(f"fc+k => i") if (fi and has_interm_concl) else True) # TODO: check this
         ) 
         return coheres
 
