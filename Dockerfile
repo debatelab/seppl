@@ -15,11 +15,13 @@ COPY . ./
 RUN apt update
 RUN apt install -y python3 python3-pip
 RUN python3 -m pip install --no-cache-dir --upgrade pip
+RUN python3 -m pip install pipx
+RUN python3 -m pipx ensurepath
 
 # --------------- Install poetry and package using `pip` ---------------
 
 # System deps:
-RUN pip install poetry==1.2.1
+RUN pipx install poetry==1.2.1
 RUN poetry self add poetry-dotenv-plugin
 RUN poetry install --no-interaction --no-ansi --without dev
 
