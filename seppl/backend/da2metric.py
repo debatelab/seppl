@@ -828,6 +828,12 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
         if not self._cache["parsed_argdown"]:
             return None
         parsed_argdown: Argument = self._cache["parsed_argdown"]
+        count_inference_steps = len([
+            s for s in parsed_argdown.statements 
+            if s.is_conclusion
+        ])
+        if not count_inference_steps:
+            return None
         count_locally_valid = 0
         for statement in parsed_argdown.statements:
             if statement.is_conclusion and statement.uses:
@@ -845,10 +851,6 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
                         if Prover9().prove(conclusion_formula, premise_formulae):
                             count_locally_valid += 1
 
-        count_inference_steps = len([
-            s for s in parsed_argdown.statements 
-            if s.is_conclusion
-        ])
         score = count_locally_valid / count_inference_steps
 
         return score
