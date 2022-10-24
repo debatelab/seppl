@@ -56,7 +56,7 @@ class Util:
         return cues
 
     @staticmethod
-    def expand_and_format_da2item(da2item: DeepA2Item, argdown: Argument) -> DeepA2Item:
+    def expand_and_format_da2item(da2item: DeepA2Item, argdown: Argument) -> Dict[str, Optional[str]]:
         """adds premises and conclusions, and layouts da2item"""
         da2item_tmp = deepcopy(da2item)
         # add premises, conclusions, and intermediary conclusions to temp da2item
@@ -79,8 +79,12 @@ class Util:
             ]
 
         # layout temporary da2item
-        layouter=DeepA2Layouter()
-        formatted_da2item = layouter.format(da2item_tmp)
+        try:
+            layouter=DeepA2Layouter()
+            formatted_da2item = layouter.format(da2item_tmp)
+        except Exception as e:
+            logging.error("Failed to format: %s", da2item_tmp)
+            raise e
         return formatted_da2item
 
 
@@ -744,7 +748,7 @@ class FormCohRecoScore(ArgdownMetric):
         fi = "+fi" if self.da2item.intermediary_conclusions_formalized else ""
         coheres = int(
             (loss("c+k => fc") <= loss("c => fc")) and
-            (loss("p+k => fp") <= loss("p => fp")) and
+            # (loss("p+k => fp") <= loss("p => fp")) and  # TODO: check this
             (loss("i+k => fi") <= loss("i => fi") if (fi and has_interm_concl) else True) and
             (loss(f"fp+k => p") <= loss(f"fc+k => p")) and
             (loss(f"fi+k => i") <= loss(f"fc+k => i") if (fi and has_interm_concl) else True)
