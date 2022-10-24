@@ -111,11 +111,11 @@ kit_ars1_ws2223
 for _, row in kit_ars1_ws2223.iterrows():
     try:
         print(f"name: {row['username']}")
-        # create_user(
-        #     user_id=row["username"],
-        #     password=row["password"],
-        #     organization="kit-ars1-ws2223",
-        # )
+        create_user(
+            user_id=row["username"],
+            password=row["password"],
+            organization="kit-ars1-ws2223",
+        )
     except Exception as e:
         print(e)
 
@@ -145,7 +145,7 @@ if user_input == "y":
 
 ## read ILIAS user list
 ilias_ars1_ws2223 = pd.read_csv(
-    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars/2022_10_19_15-111666185064_member_export_2487257.csv"
+    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars/2022_10_24_17-241666625087_member_export_2487257.csv"
 )
 
 ilias_ars1_ws2223["name"] = ilias_ars1_ws2223["Vorname"] + " " + ilias_ars1_ws2223["Nachname"]
@@ -191,8 +191,10 @@ if len(previously_assigned) > 0:
         )
     )
 
+# print(kit_ars1_ws2223_with_email_updated)
+
 # write file
-# kit_ars1_ws2223_with_email_updated.to_csv("kit_ars1_ws2223_with_email.csv", index=False)
+kit_ars1_ws2223_with_email_updated.to_csv("kit_ars1_ws2223_with_email.csv", index=False)
 
 # %%
 

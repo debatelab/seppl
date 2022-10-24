@@ -7,6 +7,7 @@ from typing import List
 
 from deepa2 import DeepA2Item
 from google.cloud import firestore
+import pandas as pd
 import requests  # type: ignore
 
 from seppl.backend.project_store import FirestoreProjectStore
@@ -116,9 +117,20 @@ split = data_flat[from_idx:to_idx]
 split[0]
 
 # %%
+
+# load user from course list
+
+kit_ars1_ws2223_with_email = pd.read_csv("kit_ars1_ws2223_with_email.csv")
+kit_ars1_ws2223_with_email["username"].to_list()
+
+# %%
 import unidecode
 
-for user_id in get_users("a-team"):
+#userlist = get_users("a-team")
+userlist = kit_ars1_ws2223_with_email["username"].to_list()
+course_id = "kit-ars1-ws2223"
+
+for user_id in userlist:
     print(user_id)
     project_store = FirestoreProjectStore(
         user_id=user_id,
@@ -137,7 +149,7 @@ for user_id in get_users("a-team"):
             da2item=DeepA2Item(source_text=da2item.source_text),
             title=title,
             description=description,
-            course_id="default_course",
+            course_id=course_id,
         )
 
 
