@@ -17,6 +17,8 @@ RUN apt install -y python3 python3-pip
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --user pipx
 RUN python3 -m pipx ensurepath
+RUN python3 -m pipx completions
+
 
 # --------------- Install poetry and package using `pip` ---------------
 
