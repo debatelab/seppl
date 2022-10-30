@@ -270,7 +270,10 @@ class OptionFactory():
         formatted_da2item = DeepA2Layouter().format(da2_item) if da2_item else None
         # re-format conclusion, which is used as cues (text only)
         if formatted_da2item and da2_item:
-            formatted_da2item["conclusion"] = da2_item.conclusion[0].text
+            if da2_item.conclusion:
+                formatted_da2item["conclusion"] = da2_item.conclusion[0].text
+            else:
+                formatted_da2item["conclusion"] = ""
         input_options: List[InputOption] = []
         if da2_fields:
             for da2_field in da2_fields:
