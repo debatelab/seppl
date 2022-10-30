@@ -81,9 +81,9 @@ class PhaseZeroHandlerNoCues(PhaseZeroHandler):
         return options
 
     def get_feedback(self, request: Request) -> str:
-        feedback = " We have no informal analysis yet. Summarizing "
+        feedback = (" We have no informal analysis yet. Summarizing "
         "the argument's key point (gist) or stating its central conclusion in"
-        " your own words might be a good starting point."
+        " your own words might be a good starting point.")
         feedback = feedback.strip()
         return feedback
 
