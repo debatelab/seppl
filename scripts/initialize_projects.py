@@ -26,7 +26,7 @@ _SOURCES = dict(
 )
 
 N_SPLITS = 8 # total number of splits into which source data is divided
-SPLIT_IDX = 0 # index of this split / this week!
+SPLIT_IDX = 3 # index of this split / this week!
 N_NEW_PROJECTS = 5 # number of new projects to create
 
 # %%
@@ -114,7 +114,7 @@ from_idx = int(SPLIT_IDX / N_SPLITS * len(data_flat))
 to_idx = int((SPLIT_IDX+1) / N_SPLITS * len(data_flat))
 split = data_flat[from_idx:to_idx]
 # %%
-split[0]
+split[SPLIT_IDX]
 
 # %%
 

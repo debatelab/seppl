@@ -85,6 +85,8 @@ for user_id in ateam:
 from faker import Faker
 fake = Faker("it_IT")
 
+# %%
+
 # ARS I 22/23
 
 # usernames = []
@@ -101,12 +103,13 @@ fake = Faker("it_IT")
 # pd.DataFrame({"username": usernames, "password": passwords}).to_csv("kit_ars1_ws2223.csv", index=False)
 
 
-# %%
 
 kit_ars1_ws2223 = pd.read_csv("kit_ars1_ws2223.csv")
 kit_ars1_ws2223
 
 # %%
+
+# create ARS I 22/23 users with fake-names
 
 for _, row in kit_ars1_ws2223.iterrows():
     try:
@@ -142,10 +145,13 @@ user_input = input("Has account-info been sent to all previously assigned SEPPL 
 if user_input == "y":
     kit_ars1_ws2223_with_email["send_account_info"] = False
 
+# write file
+kit_ars1_ws2223_with_email.to_csv("kit_ars1_ws2223_with_email.csv", index=False)
+
 
 ## read ILIAS user list
 ilias_ars1_ws2223 = pd.read_csv(
-    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars/2022_10_24_17-241666625087_member_export_2487257.csv"
+    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars_1/2022_11_07_08-501667807440_member_export_2487257.csv"
 )
 
 ilias_ars1_ws2223["name"] = ilias_ars1_ws2223["Vorname"] + " " + ilias_ars1_ws2223["Nachname"]
@@ -156,6 +162,8 @@ ilias_ars1_ws2223.head()
 ilias_ars1_ws2223["has_account"] = ilias_ars1_ws2223["email"].isin(kit_ars1_ws2223_with_email["email"])
 print("User without SEPPL account:")
 new_users = ilias_ars1_ws2223[~ilias_ars1_ws2223["has_account"]][["name", "email"]]
+new_users = new_users[new_users.email.notna() & new_users.name.notna()]
+new_users = new_users.reset_index(drop=True)
 print(new_users.head())
 
 # free seppl accounts
@@ -164,18 +172,22 @@ free_seppl_accounts = kit_ars1_ws2223_with_email[
 ]
 assert len(new_users) <= len(free_seppl_accounts)
 
-newly_assigned_seppl_accounts = free_seppl_accounts[: len(new_users)].copy(deep=True)
+newly_assigned_seppl_accounts = free_seppl_accounts.iloc[: len(new_users)].copy(deep=True)
+newly_assigned_seppl_accounts = newly_assigned_seppl_accounts.reset_index(drop=True)
 newly_assigned_seppl_accounts["email"] = new_users["email"]
 newly_assigned_seppl_accounts["name"] = new_users["name"].apply(unidecode.unidecode)
 newly_assigned_seppl_accounts["send_account_info"] = True
 
 # reassemble seppl accounts
 
-kit_ars1_ws2223_with_email_updated = pd.concat([
-    kit_ars1_ws2223_with_email[~kit_ars1_ws2223_with_email["email"].isna()],
-    newly_assigned_seppl_accounts,
-    free_seppl_accounts[len(new_users):],
-])
+kit_ars1_ws2223_with_email_updated = pd.concat(
+    [
+        kit_ars1_ws2223_with_email[~kit_ars1_ws2223_with_email["email"].isna()],
+        newly_assigned_seppl_accounts,
+        free_seppl_accounts[len(new_users):],
+    ],
+    ignore_index=True,
+)
 
 # checks
 assert(
