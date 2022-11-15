@@ -441,10 +441,13 @@ class ReasonsAlignedScore(ArgdownMetric):
         count_aligned = 0
         for reason in self.da2item.reasons:
             if reason.ref_reco > 0 and reason.ref_reco <= len(parsed_argdown.statements):
-                referenced_statement = next(
-                    s for s in parsed_argdown.statements
-                    if (s.label == reason.ref_reco)
-                )
+                try:
+                    referenced_statement = next(
+                        s for s in parsed_argdown.statements
+                        if (s.label == reason.ref_reco)
+                    )
+                except StopIteration:
+                    referenced_statement = None
                 if referenced_statement:
                     if not referenced_statement.is_conclusion:
                         count_aligned += 1
@@ -477,10 +480,13 @@ class ConjecturesAlignedScore(ArgdownMetric):
         count_aligned = 0
         for conjecture in self.da2item.conjectures:
             if conjecture.ref_reco > 0 and conjecture.ref_reco <= len(parsed_argdown.statements):
-                referenced_statement = next(
-                    s for s in parsed_argdown.statements
-                    if s.label == conjecture.ref_reco
-                )
+                try:
+                    referenced_statement = next(
+                        s for s in parsed_argdown.statements
+                        if s.label == conjecture.ref_reco
+                    )
+                except StopIteration:
+                    referenced_statement = None
                 if referenced_statement:
                     if referenced_statement.is_conclusion:
                         count_aligned += 1
