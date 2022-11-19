@@ -198,10 +198,15 @@ class DA2MosecPipeline(AbstractInferencePipeline):  # pylint: disable=too-few-pu
             "parameters": kwargs,
         }
         data = json.dumps(payload)
-        result_json = self._query_server(
-            server_url=self.textgen_server_url,
-            data=data,
-        )
+        result_json = None
+        try:
+            result_json = self._query_server(
+                server_url=self.textgen_server_url,
+                data=data,
+            )
+        except Exception as error:
+            logging.error("generation failed in step %s", mode)
+            logging.error(error)
         if not result_json:
             return [{"error": "generation failed, no result"}]
         return [result_json]

@@ -346,8 +346,9 @@ class TextOptionStRenderer(InputOptionStRenderer):
             DA2_ANGLES_MAP.fc,
         ]:
             return ("One formula per line. Use the syntax `(ref: (i))` to "
-            "refer to statement (i) in argument. Example with two formulas, "
-            "referring to (1) and (4):  \n"
+            "refer to statement (i) in argument. Chars `u-z` are _reserved "
+            "for variables_. Example with two formulas, referring to (1) "
+            "and (4):  \n"
             "> p (ref: (1))  \n"
             "> p -> q (ref: (4))  \n"
             "**Logical syntax:**  \n"

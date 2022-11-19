@@ -315,10 +315,10 @@ class PhaseTwoHandlerCatchAll(PhaseTwoHandler):
             "your argument reconstruction.")
         if not metrics.individual_score("GlobalDeductiveValidityScore"):
             feedback += (" Given your formalization, the argument is not globally "
-            "deductively valid.")
+            "deductively valid. (Or variable naming conventions are violated.)")
         if not metrics.individual_score("LocalDeductiveValidityScore"):
             feedback += (" Given your formalization, some individual sub-argument "
-            "is not deductively valid.")
+            "is not deductively valid. (Or variable naming conventions are violated.)")
         return feedback
 
     def get_input_options(self, request: Request) -> List[InputOption]:

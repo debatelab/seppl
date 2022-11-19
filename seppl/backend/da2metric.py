@@ -56,7 +56,7 @@ class Util:
         return cues
 
     @staticmethod
-    def expand_and_format_da2item(da2item: DeepA2Item, argdown: Argument) -> Dict[str, Optional[str]]:
+    def expand_and_format_da2item(da2item: DeepA2Item, argdown: Argument) -> Dict[str, str]:
         """adds premises and conclusions, and layouts da2item"""
         da2item_tmp = deepcopy(da2item)
         # add premises, conclusions, and intermediary conclusions to temp da2item
@@ -85,6 +85,13 @@ class Util:
         except Exception as e:
             logging.error("Failed to format: %s", da2item_tmp)
             raise e
+
+        formatted_da2item = {
+            key: value if value else ""
+            for key, value 
+            in formatted_da2item.items()
+        }
+
         return formatted_da2item
 
 
@@ -151,7 +158,7 @@ class Metric(ABC):
             self.score = self.calculate()
 
     @property
-    def formatted_da2item(self) -> Dict[str,Optional[str]]:
+    def formatted_da2item(self) -> Dict[str,str]:
         """return formatted da2item"""
         parsed_argdown: Argument = None
         if "parsed_argdown" in self._cache:
@@ -802,7 +809,11 @@ class GlobalDeductiveValidityScore(FormalizationMetric):
             not conclusion_formulae
         ):
             return None
-        score = Prover9().prove(conclusion_formulae[0], premise_formulae)
+        score = False
+        try:
+            score = Prover9().prove(conclusion_formulae[0], premise_formulae)
+        except Exception as e:
+            logging.error("Prover9 failed: %s", e)
         return int(score)
 
 
@@ -858,7 +869,12 @@ class LocalDeductiveValidityScore(FormalizationMetric, ArgdownMetric):
                             return None
                         premise_formulae.append(premise_formula)
                     if premise_formulae and None not in premise_formulae:
-                        if Prover9().prove(conclusion_formula, premise_formulae):
+                        proven = None
+                        try:
+                            proven = Prover9().prove(conclusion_formula, premise_formulae)
+                        except Exception as e:
+                            logging.error("Prover9 failed: %s", e)
+                        if proven:
                             count_locally_valid += 1
 
         score = count_locally_valid / count_inference_steps
