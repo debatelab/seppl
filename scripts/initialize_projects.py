@@ -26,7 +26,7 @@ _SOURCES = dict(
 )
 
 N_SPLITS = 8 # total number of splits into which source data is divided
-SPLIT_IDX = 3 # index of this split / this week!
+SPLIT_IDX = 5 # index of this split / this week!
 N_NEW_PROJECTS = 5 # number of new projects to create
 
 # %%
@@ -57,15 +57,17 @@ def get_users(organization: str) -> List[str]:
 # %%
 
 # test
-get_users("a-team")
+# get_users("a-team")
 
 # %%
+# get githubtoken
 
 with open('github_tokens.json') as f:
     d = json.load(f)
     GITHUB_TOKEN = d.get("token")
 
 # %%
+# get data from github
 
 # send a request
 r = requests.get(
@@ -109,6 +111,7 @@ len(data_flat)
 
 
 # %%
+# split data
 
 from_idx = int(SPLIT_IDX / N_SPLITS * len(data_flat))
 to_idx = int((SPLIT_IDX+1) / N_SPLITS * len(data_flat))

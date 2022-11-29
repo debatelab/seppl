@@ -260,7 +260,7 @@ class PhaseZeroHandlerCatchAll(PhaseZeroHandler):
         feedback += (
             " SEPPL fails to see how your argument reconstruction "
             "is an interpretation OF the source text. You might revise and expand the "
-            "reconstruction, or provide additional/better cues (e.g., gist, paraphrase) "
+            "reconstruction, or provide additional/better cues (e.g., gist, source paraphrase) "
             "that close the gap between the source text and the reconstructed "
             "argument."
         )

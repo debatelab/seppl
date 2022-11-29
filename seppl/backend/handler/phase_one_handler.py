@@ -76,7 +76,8 @@ class PhaseOneHandlerNoRJ(PhaseOneHandler):
                     outputs[0]["generated_text"]
                 )
             else:
-                logging.warning("Generation failed for mode s+a => %s", angle)
+                logging.error("Generation failed for mode s+a => %s", angle)
+                quotes[field] = []
 
             #options.append(
                 #QuoteOption(

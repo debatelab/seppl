@@ -44,12 +44,12 @@ alphabet = string.ascii_letters + string.digits
 
 # %%
 
-password = ''.join(secrets.choice(alphabet) for i in range(9)) 
-create_user(
-    user_id="test_user1",
-    password=password,
-    organization="a-team",
-)
+#password = ''.join(secrets.choice(alphabet) for i in range(9)) 
+#create_user(
+#    user_id="test_user1",
+#    password=password,
+#    organization="a-team",
+#)
 
 
 
@@ -151,7 +151,7 @@ kit_ars1_ws2223_with_email.to_csv("kit_ars1_ws2223_with_email.csv", index=False)
 
 ## read ILIAS user list
 ilias_ars1_ws2223 = pd.read_csv(
-    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars_1/2022_11_07_08-501667807440_member_export_2487257.csv"
+    "/Users/ggbetz/Documents/Philosophie/Lehre/WS2223/ars_1/2022_11_21_11-381669027079_member_export_2487257.csv"
 )
 
 ilias_ars1_ws2223["name"] = ilias_ars1_ws2223["Vorname"] + " " + ilias_ars1_ws2223["Nachname"]
