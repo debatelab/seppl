@@ -15,7 +15,8 @@ import seppl.backend.session_state_keys as stsk
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p'
+    datefmt='%m/%d/%Y %I:%M:%S %p',
+    filename='seppl.log',
 )
 
 
