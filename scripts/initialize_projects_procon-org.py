@@ -26,7 +26,7 @@ _SOURCES = dict(
 )
 
 N_SPLITS = 8 # total number of splits into which source data is divided
-SPLIT_IDX = 5 # index of this split / this week!
+SPLIT_IDX = 7 # index of this split / this week!
 N_NEW_PROJECTS = 5 # number of new projects to create
 
 # %%
