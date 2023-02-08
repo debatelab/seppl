@@ -212,3 +212,29 @@ kit_ars1_ws2223_with_email_updated.to_csv("kit_ars1_ws2223_with_email.csv", inde
 
 
 # %%
+
+# GET CANDIES PER USER #
+
+kit_ars1_ws2223 = pd.read_csv("kit_ars1_ws2223_with_email.csv")
+kit_ars1_ws2223
+
+
+# %%
+
+def get_candies_per_user(username):
+    user_ref = db.collection(f"users").document(username)
+    user = user_ref.get().to_dict()
+    return user.get("sofa_counter", 0)
+
+get_candies_per_user("marcantonio-galuppi")
+
+# %%
+
+kit_ars1_ws2223["candies"] = kit_ars1_ws2223["username"].apply(get_candies_per_user)
+kit_ars1_ws2223
+# %%
+
+kit_ars1_ws2223.to_csv("kit_ars1_ws2223_candies_jan01.csv", index=False)
+
+
+# %%

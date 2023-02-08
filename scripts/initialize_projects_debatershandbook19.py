@@ -25,10 +25,10 @@ _SOURCES = dict(
     path = 'debaters_handbook/edition_19',
 )
 
-N_SPLITS = 8 # total number of splits into which source data is divided
-SPLIT_IDX = 7 # index of this split / this week!
+N_SPLITS = 6 # total number of splits into which source data is divided
+SPLIT_IDX = 4 # index of this split / this week!
 N_NEW_PROJECTS = 5 # number of new projects to create
-STARTS_AT_WEEK = 8 # week at which to start the projects with split idx 0
+STARTS_AT_WEEK = 9 # week at which to start the projects with split idx 0
 
 
 # %%
@@ -170,7 +170,7 @@ for user_id in userlist:
         description = data_item["description"]
         project_id = unidecode.unidecode(title[:30]).replace(" ", "_")
         project_id = ''.join(c for c in project_id if c.isalnum())
-        project_id = f"Week{(SPLIT_IDX+STARTS_AT_WEEK)}-{e}-{project_id}"
+        project_id = f"Week{(SPLIT_IDX+STARTS_AT_WEEK)}-{e+1}-{project_id}"
         project_store.create_new_project(
             project_id=project_id,
             da2item=DeepA2Item(source_text=da2item.source_text),
