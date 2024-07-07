@@ -6,7 +6,7 @@
 
 AI-Powered E-Learning App for Argument Analysis.
 
-[Gallery](#highlights) •
+[Gallery](#gallery) •
 [Highlights](#highlights) •
 [Background](#background) •
 [Technical Notes](#technical-notes)
