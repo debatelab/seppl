@@ -6,6 +6,8 @@
 
 AI-Powered E-Learning App for Argument Analysis.
 
+![zenodo-badge](assets/zenodo.12678649.svg)
+
 [Gallery](#gallery) •
 [Highlights](#highlights) •
 [Background](#background) •
