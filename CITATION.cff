@@ -4,7 +4,7 @@ authors:
 - family-names: "Betz"
   given-names: "Gregor"
   orcid: "https://orcid.org/0000-0001-5802-5030"
-title: "seppl -- LLM-based E-Tutor for Logical Argument Analysis"
+title: "seppl: LLM-based E-Tutor for Logical Argument Analysis"
 version: 1.0.0
 doi: 10.5281/zenodo.XXXX
 date-released: 2024-07-07
