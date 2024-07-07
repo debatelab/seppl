@@ -59,6 +59,8 @@ AI-Powered E-Learning App for Argument Analysis.
 
 ➡️ Based on the [DeepA2 framework](https://debatelab.github.io/journal/deepa2.html) and custom T5 models fine-tuned on critical thinking datasets.
 
+➡️ Software architecture: Uses decomposed prompting with various generative and loss LLM calls, organized as [chain of responsibility](https://refactoring.guru/design-patterns/chain-of-responsibility).
+
 ➡️ Built in the summer 2022.
 
 ➡️ Deployed in winter term 2022/23 in critical thinking course at the [Karlsruhe Institute of Technology](https://www.philosophie.kit.edu/).
