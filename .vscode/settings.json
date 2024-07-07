@@ -1,8 +1,0 @@
-{
-    "cSpell.enableFiletypes": [
-        "!python"
-    ],
-    "python.linting.pylintEnabled": false,
-    "python.linting.mypyEnabled": true,
-    "python.linting.enabled": true
-}

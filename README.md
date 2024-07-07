@@ -39,7 +39,7 @@ AI-Powered E-Learning App for Argument Analysis.
 
 ## Background
 
-➡️ Conceives of argument reconstruction as a hermeneutical process, in which anaylsts constantly revise their logical reconstruction in line with different criteria:
+➡️ Conceives of argument reconstruction as a hermeneutical process, in which analysts constantly revise their logical reconstruction in line with different criteria:
 
 - Plausibility and faithfulness of premises and conclusion.
 - Inferential strength (e.g., deductive correctness) of the reconstructed argument.
@@ -63,7 +63,7 @@ AI-Powered E-Learning App for Argument Analysis.
 
 ➡️ Deployed in winter term 2022/23 in critical thinking course at the [Karlsruhe Institute of Technology](https://www.philosophie.kit.edu/).
 
-➡️ Evaluated with a Teaching Analysis Poll (TAP) by the Methods Lab at the House of Competence (www.hoc.kit.edu) in collaboration with KIT's quality management services (https://www.sts.kit.edu/qualitaetsmanagement.php).
+➡️ Evaluated with a Teaching Analysis Poll (TAP) by the Methods Lab at the House of Competence (www.hoc.kit.edu) in collaboration with KIT's quality management services (https://www.sts.kit.edu/qualitaetsmanagement.php). 🙏
 
 ➡️ Further reading:
 
